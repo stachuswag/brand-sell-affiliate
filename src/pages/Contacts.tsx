@@ -98,7 +98,7 @@ export default function Contacts() {
     fetchPartners();
   }, []);
 
-  const updateStatus = async (contactId: string, status: string) => {
+  const updateStatus = async (contactId: string, status: "new" | "in_progress" | "deal_closed" | "no_deal") => {
     await supabase.from("contacts").update({ status }).eq("id", contactId);
     toast({ title: "Status zaktualizowany" });
     fetchContacts();
