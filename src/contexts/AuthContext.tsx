@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch role separately whenever user changes — fire and forget, non-blocking
+  // Fetch role non-blocking whenever user changes
   useEffect(() => {
     if (!user) {
       setRole(null);
@@ -36,26 +36,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         setRole((data?.role as AppRole) ?? "employee");
       });
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    // 1. Restore session from storage FIRST
+    // onAuthStateChange fires FIRST (even before getSession resolves)
+    // → use it to unblock the UI immediately
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false); // unblock as soon as we know auth state
+      }
+    );
+
+    // getSession as a fallback in case onAuthStateChange is slow
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // 2. Listen for subsequent auth changes (sign in, sign out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        // Do NOT await here — causes deadlocks
-      }
-    );
+    // Hard timeout — no matter what, stop loading after 3s
+    const timeout = setTimeout(() => setLoading(false), 3000);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
