@@ -14,16 +14,363 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      affiliate_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          destination_url: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          link_type: Database["public"]["Enums"]["link_type"]
+          partner_id: string
+          property_address: string | null
+          property_name: string | null
+          tracking_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          destination_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_type?: Database["public"]["Enums"]["link_type"]
+          partner_id: string
+          property_address?: string | null
+          property_name?: string | null
+          tracking_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          destination_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_type?: Database["public"]["Enums"]["link_type"]
+          partner_id?: string
+          property_address?: string | null
+          property_name?: string | null
+          tracking_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_links_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          affiliate_link_id: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          message: string | null
+          notes: string | null
+          phone: string | null
+          source_ip: string | null
+          status: Database["public"]["Enums"]["contact_status"]
+          updated_at: string
+        }
+        Insert: {
+          affiliate_link_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          message?: string | null
+          notes?: string | null
+          phone?: string | null
+          source_ip?: string | null
+          status?: Database["public"]["Enums"]["contact_status"]
+          updated_at?: string
+        }
+        Update: {
+          affiliate_link_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          message?: string | null
+          notes?: string | null
+          phone?: string | null
+          source_ip?: string | null
+          status?: Database["public"]["Enums"]["contact_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      link_clicks: {
+        Row: {
+          affiliate_link_id: string
+          clicked_at: string
+          id: string
+          ip_address: string | null
+          referrer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          affiliate_link_id: string
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          affiliate_link_id?: string
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_clicks_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          affiliate_link_id: string | null
+          contact_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          affiliate_link_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          affiliate_link_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          affiliate_link_id: string | null
+          closed_at: string
+          closed_by: string | null
+          commission_amount: number | null
+          commission_paid: boolean
+          contact_id: string
+          created_at: string
+          deal_value: number | null
+          id: string
+          notes: string | null
+          partner_id: string | null
+          property_name: string | null
+        }
+        Insert: {
+          affiliate_link_id?: string | null
+          closed_at?: string
+          closed_by?: string | null
+          commission_amount?: number | null
+          commission_paid?: boolean
+          contact_id: string
+          created_at?: string
+          deal_value?: number | null
+          id?: string
+          notes?: string | null
+          partner_id?: string | null
+          property_name?: string | null
+        }
+        Update: {
+          affiliate_link_id?: string | null
+          closed_at?: string
+          closed_by?: string | null
+          commission_amount?: number | null
+          commission_paid?: boolean
+          contact_id?: string
+          created_at?: string
+          deal_value?: number | null
+          id?: string
+          notes?: string | null
+          partner_id?: string | null
+          property_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "employee"
+      contact_status: "new" | "in_progress" | "deal_closed" | "no_deal"
+      link_type: "partner" | "property"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +497,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "employee"],
+      contact_status: ["new", "in_progress", "deal_closed", "no_deal"],
+      link_type: ["partner", "property"],
+    },
   },
 } as const
