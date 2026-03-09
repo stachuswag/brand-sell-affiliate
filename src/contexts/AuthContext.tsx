@@ -22,41 +22,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
-    const { data } = await supabase
+  // Fetch role separately whenever user changes — fire and forget, non-blocking
+  useEffect(() => {
+    if (!user) {
+      setRole(null);
+      return;
+    }
+    supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setRole((data?.role as AppRole) ?? "employee");
-  };
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setRole((data?.role as AppRole) ?? "employee");
+      });
+  }, [user]);
 
   useEffect(() => {
-    let initialized = false;
+    // 1. Restore session from storage FIRST
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
+    // 2. Listen for subsequent auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchRole(session.user.id);
-        } else {
-          setRole(null);
-        }
-        setLoading(false);
-        initialized = true;
+        // Do NOT await here — causes deadlocks
       }
     );
 
-    // Fallback: if onAuthStateChange doesn't fire within 1.5s, mark as done
-    const fallback = setTimeout(() => {
-      if (!initialized) setLoading(false);
-    }, 1500);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(fallback);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
