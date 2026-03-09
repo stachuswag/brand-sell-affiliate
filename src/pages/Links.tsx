@@ -330,9 +330,18 @@ export default function Links() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Docelowy URL (formularz / strona)</Label>
-                <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt" type="url" />
-                <p className="text-xs text-muted-foreground">Zostaw puste żeby użyć wbudowanego formularza</p>
+                <Label>Przekierowanie po kliknięciu linku</Label>
+                <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2">
+                  <span className="mt-0.5 h-2 w-2 rounded-full bg-success flex-shrink-0 mt-1.5" />
+                  <div className="text-xs text-foreground">
+                    <span className="font-medium">Wbudowany formularz kontaktowy</span>
+                    <span className="text-muted-foreground"> — klient wypełnia formularz, Ty dostajesz powiadomienie</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie) — np. jeśli masz własną stronę:</p>
+                  <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt (opcjonalnie)" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Data ważności (opcjonalnie)</Label>
