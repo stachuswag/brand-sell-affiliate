@@ -32,6 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let initialized = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
@@ -42,20 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRole(null);
         }
         setLoading(false);
+        initialized = true;
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRole(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    // Fallback: if onAuthStateChange doesn't fire within 1.5s, mark as done
+    const fallback = setTimeout(() => {
+      if (!initialized) setLoading(false);
+    }, 1500);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(fallback);
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
