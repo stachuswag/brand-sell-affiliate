@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2, Users } from "lucide-react";
+import { Plus, Pencil, Building, Mail, Phone, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {

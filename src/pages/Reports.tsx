@@ -18,9 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BarChart2, Download, TrendingUp, Euro, Users, CheckCircle2 } from "lucide-react";
+import { Download, TrendingUp, Euro, Users, CheckCircle2 } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
-import { pl } from "date-fns/locale";
 
 interface PartnerReport {
   partner_id: string;
