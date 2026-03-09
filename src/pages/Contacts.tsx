@@ -314,7 +314,7 @@ export default function Contacts() {
                   )}
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Status</Label>
-                    <Select value={selected.status} onValueChange={(v) => updateStatus(selected.id, v)}>
+                    <Select value={selected.status} onValueChange={(v) => updateStatus(selected.id, v as "new" | "in_progress" | "deal_closed" | "no_deal")}>
                       <SelectTrigger className="h-8">
                         <SelectValue />
                       </SelectTrigger>
