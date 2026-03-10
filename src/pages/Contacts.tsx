@@ -260,7 +260,7 @@ export default function Contacts() {
                             {format(new Date(c.created_at), "d MMM yyyy", { locale: pl })}
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1">
+                            <div className="flex items-center justify-end gap-1 flex-wrap">
                               {c.status !== "deal_closed" && (
                                 <Button
                                   size="sm"
@@ -271,6 +271,20 @@ export default function Contacts() {
                                   <TrendingUp className="h-3 w-3" /> Transakcja
                                 </Button>
                               )}
+                              {c.status === "deal_closed" && (() => {
+                                const tx = transactions.find((t) => t.contact_id === c.id);
+                                if (!tx) return null;
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant={tx.commission_paid ? "outline" : "default"}
+                                    className={`h-7 px-2 text-xs gap-1 ${tx.commission_paid ? "text-muted-foreground" : "bg-gold text-primary-foreground hover:bg-gold/90"}`}
+                                    onClick={() => markCommissionPaid(c.id, !tx.commission_paid)}
+                                  >
+                                    {tx.commission_paid ? "✓ Prowizja opłacona" : "Oznacz prowizję"}
+                                  </Button>
+                                );
+                              })()}
                             </div>
                           </TableCell>
                         </TableRow>
