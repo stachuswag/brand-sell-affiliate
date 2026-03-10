@@ -86,7 +86,7 @@ export default function Contacts() {
   const fetchContacts = async () => {
     const { data } = await supabase
       .from("contacts")
-      .select(`*, affiliate_links(tracking_code, property_name, link_type, partners(name))`)
+      .select(`*, affiliate_links(tracking_code, property_name, link_type, offer_id, partners(name))`)
       .order("created_at", { ascending: false });
     if (data) setContacts(data as any);
     setLoading(false);
@@ -108,6 +108,26 @@ export default function Contacts() {
     await supabase.from("transactions").update({ commission_paid: paid }).eq("id", tx.id);
     toast({ title: paid ? "Prowizja oznaczona jako opłacona" : "Oznaczono jako nieopłacona" });
     fetchTransactions();
+  };
+
+  const openDealDialogWithCommission = async (c: Contact) => {
+    setSelected(c);
+    let autoCommission = "";
+    // Auto-fill commission from linked offer
+    if (c.affiliate_links?.offer_id) {
+      const { data: offer } = await supabase
+        .from("offers")
+        .select("commission_percent, price")
+        .eq("id", c.affiliate_links.offer_id)
+        .single();
+      if (offer?.commission_percent && offer?.price) {
+        const amount = (offer.price * offer.commission_percent) / 100;
+        autoCommission = amount.toFixed(0);
+      }
+    }
+    setDealForm({ deal_value: "", commission_amount: autoCommission, notes: "" });
+    setDealOpen(true);
+    setDetailOpen(false);
   };
 
   useEffect(() => {

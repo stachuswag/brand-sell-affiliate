@@ -209,7 +209,10 @@ export default function Offers() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right text-sm">{o.area_m2 ? `${o.area_m2} m²` : "—"}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">{o.price ? fmt(o.price) : "—"}</TableCell>
+                         <TableCell className="text-right text-sm font-medium">{o.price ? fmt(o.price) : "—"}</TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">
+                          {o.commission_percent != null ? `${o.commission_percent}%` : "—"}
+                        </TableCell>
                         <TableCell className="text-center">
                           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${o.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
                             {o.is_active ? "Aktywna" : "Nieaktywna"}
