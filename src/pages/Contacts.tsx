@@ -56,6 +56,7 @@ interface Contact {
     tracking_code: string;
     property_name: string | null;
     link_type: string;
+    offer_id: string | null;
     partners: { name: string } | null;
   } | null;
 }

@@ -41,6 +41,7 @@ interface Offer {
   area_m2: number | null;
   offer_type: string;
   description: string | null;
+  commission_percent: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -53,6 +54,7 @@ const emptyForm = {
   area_m2: "",
   offer_type: "sale",
   description: "",
+  commission_percent: "",
 };
 
 const fmt = (n: number) =>
