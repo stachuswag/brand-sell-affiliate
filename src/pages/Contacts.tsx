@@ -67,9 +67,6 @@ const statusConfig = {
   no_deal: { label: "Brak transakcji", className: "bg-red-50 text-red-700 border-red-200" },
 };
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(n);
-
 export default function Contacts() {
   const { toast } = useToast();
   const { user } = useAuth();
