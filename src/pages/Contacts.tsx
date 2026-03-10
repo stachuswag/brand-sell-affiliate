@@ -28,11 +28,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCheck, TrendingUp, Filter, CircleDollarSign } from "lucide-react";
+import { UserCheck, TrendingUp, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+
+interface Transaction {
+  id: string;
+  contact_id: string;
+  commission_amount: number | null;
+  commission_paid: boolean;
+  deal_value: number | null;
+}
 
 interface Contact {
   id: string;
@@ -59,10 +67,14 @@ const statusConfig = {
   no_deal: { label: "Brak transakcji", className: "bg-red-50 text-red-700 border-red-200" },
 };
 
+const fmt = (n: number) =>
+  new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(n);
+
 export default function Contacts() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
