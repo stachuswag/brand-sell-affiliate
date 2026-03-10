@@ -192,6 +192,7 @@ export default function Offers() {
                       <TableHead>Typ</TableHead>
                       <TableHead className="text-right">Powierzchnia</TableHead>
                       <TableHead className="text-right">Cena</TableHead>
+                      <TableHead className="text-right">Prowizja</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
                     </TableRow>
