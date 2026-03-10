@@ -154,73 +154,249 @@ export default function Reports() {
     }
   };
 
+  // Helper: hex color string to RGB array for jsPDF
+  const hexToRgb = (hex: string): [number, number, number] => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return [r, g, b];
+  };
+
   const exportPDF = async () => {
-    if (!reportRef.current) return;
     setExportLoading(true);
     try {
       const { default: jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
-      const html2canvas = (await import("html2canvas")).default;
 
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const pageW = doc.internal.pageSize.getWidth();
+      const pageW = doc.internal.pageSize.getWidth(); // 297
+      const margin = 14;
+      const contentW = pageW - margin * 2;
 
+      // ── Header bar ──────────────────────────────────────────────
       doc.setFillColor(24, 54, 97);
-      doc.rect(0, 0, pageW, 20, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Raport afiliacyjny — Brand & Sell", 14, 13);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Okres: ${periodLabel()} | Wygenerowano: ${format(new Date(), "dd.MM.yyyy HH:mm")}`, pageW - 14, 13, { align: "right" });
+      doc.rect(0, 0, pageW, 22, "F");
+      // gold accent line
+      doc.setFillColor(245, 166, 35);
+      doc.rect(0, 22, pageW, 1.5, "F");
 
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(17);
+      doc.setFont("helvetica", "bold");
+      doc.text("Brand & Sell — Raport afiliacyjny", margin, 14);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(200, 215, 240);
+      doc.text(
+        `Okres: ${periodLabel()}   |   Wygenerowano: ${format(new Date(), "dd.MM.yyyy HH:mm")}`,
+        pageW - margin, 14, { align: "right" }
+      );
+
+      // ── Summary boxes (6 boxes) ──────────────────────────────────
       const boxes = [
-        { label: "Kontakty łącznie", value: String(totals.contacts) },
-        { label: "Transakcje", value: String(totals.deals) },
-        { label: "Wartość transakcji", value: fmt(totals.dealValue) },
-        { label: "Prowizja łącznie", value: fmt(totals.commission) },
-        { label: "Nieopłacone", value: fmt(totals.unpaid) },
-        { label: "Opłacone", value: fmt(totals.paid) },
+        { label: "Kontakty łącznie", value: String(totals.contacts), accent: [24, 54, 97] as [number,number,number] },
+        { label: "Sprzedane", value: String(totals.deals), accent: [39, 174, 96] as [number,number,number] },
+        { label: "Wartość transakcji", value: fmt(totals.dealValue), accent: [245, 166, 35] as [number,number,number] },
+        { label: "Prowizja łącznie", value: fmt(totals.commission), accent: [24, 54, 97] as [number,number,number] },
+        { label: "Prowizja opłacona", value: fmt(totals.paid), accent: [39, 174, 96] as [number,number,number] },
+        { label: "Nieopłacona", value: fmt(totals.unpaid), accent: [200, 50, 50] as [number,number,number] },
       ];
-      const boxW = (pageW - 28) / boxes.length;
+      const boxY = 27;
+      const boxH = 18;
+      const boxGap = 2;
+      const boxW = (contentW - boxGap * (boxes.length - 1)) / boxes.length;
       boxes.forEach((box, i) => {
-        const x = 14 + i * boxW;
-        doc.setFillColor(240, 245, 255);
-        doc.roundedRect(x, 24, boxW - 2, 16, 2, 2, "F");
-        doc.setFontSize(7);
-        doc.setTextColor(100, 100, 120);
-        doc.text(box.label, x + (boxW - 2) / 2, 30, { align: "center" });
-        doc.setFontSize(10);
+        const x = margin + i * (boxW + boxGap);
+        // card bg
+        doc.setFillColor(245, 248, 255);
+        doc.roundedRect(x, boxY, boxW, boxH, 2, 2, "F");
+        // top accent stripe
+        doc.setFillColor(...box.accent);
+        doc.roundedRect(x, boxY, boxW, 2.5, 1, 1, "F");
+        // label
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 110, 130);
+        doc.text(box.label, x + boxW / 2, boxY + 8, { align: "center" });
+        // value
+        doc.setFontSize(9.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...box.accent);
+        doc.text(box.value, x + boxW / 2, boxY + 14.5, { align: "center" });
+      });
+
+      // ── Vector bar charts ────────────────────────────────────────
+      const chartTopY = boxY + boxH + 6;
+      const chartH = 52;
+      const chartW = (contentW - 6) / 2;
+      const barMaxVal1 = Math.max(...activePartners.map(r => r.total_contacts), 1);
+      const barMaxVal2 = Math.max(...activePartners.map(r => r.closed_deals), 1);
+
+      const drawBarChart = (
+        data: { name: string; value: number; colorHex: string }[],
+        startX: number,
+        title: string,
+        maxVal: number
+      ) => {
+        const plotX = startX + 10;
+        const plotW = chartW - 14;
+        const plotY = chartTopY + 8;
+        const plotH = chartH - 12;
+
+        // title
+        doc.setFontSize(8.5);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(24, 54, 97);
-        doc.text(box.value, x + (boxW - 2) / 2, 36, { align: "center" });
-        doc.setFont("helvetica", "normal");
+        doc.text(title, startX + chartW / 2, chartTopY + 4, { align: "center" });
+
+        // background & grid
+        doc.setFillColor(250, 251, 255);
+        doc.roundedRect(startX, chartTopY + 6, chartW, chartH - 4, 2, 2, "F");
+        doc.setDrawColor(220, 225, 235);
+        doc.setLineWidth(0.2);
+        for (let g = 0; g <= 4; g++) {
+          const gy = plotY + plotH - (g / 4) * plotH;
+          doc.line(plotX, gy, plotX + plotW, gy);
+          doc.setFontSize(5.5);
+          doc.setTextColor(150, 155, 165);
+          doc.setFont("helvetica", "normal");
+          doc.text(String(Math.round((g / 4) * maxVal)), plotX - 1, gy + 0.8, { align: "right" });
+        }
+
+        if (data.length === 0) return;
+
+        const barWidth = Math.min((plotW / data.length) * 0.55, 16);
+        const barSpacing = plotW / data.length;
+
+        data.forEach((d, idx) => {
+          const bx = plotX + idx * barSpacing + barSpacing / 2 - barWidth / 2;
+          const bh = (d.value / maxVal) * plotH;
+          const by = plotY + plotH - bh;
+          const [r2, g2, b2] = hexToRgb(d.colorHex);
+          doc.setFillColor(r2, g2, b2);
+          if (bh > 0) {
+            doc.roundedRect(bx, by, barWidth, bh, 1, 1, "F");
+          }
+          // value label on top
+          if (d.value > 0) {
+            doc.setFontSize(6);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(r2, g2, b2);
+            doc.text(String(d.value), bx + barWidth / 2, by - 1, { align: "center" });
+          }
+          // x-axis label
+          doc.setFontSize(5.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(80, 90, 110);
+          const nameShort = d.name.length > 10 ? d.name.slice(0, 10) + "." : d.name;
+          doc.text(nameShort, bx + barWidth / 2, plotY + plotH + 5, { align: "center", maxWidth: barSpacing - 1 });
+        });
+      };
+
+      drawBarChart(
+        activePartners.map((r, i) => ({ name: r.partner_name, value: r.total_contacts, colorHex: getColor(reports.findIndex(x => x.partner_id === r.partner_id)) })),
+        margin, "Kontakty przez linki", barMaxVal1
+      );
+      drawBarChart(
+        activePartners.map((r, i) => ({ name: r.partner_name, value: r.closed_deals, colorHex: getColor(reports.findIndex(x => x.partner_id === r.partner_id)) })),
+        margin + chartW + 6, "Sprzedane nieruchomości", barMaxVal2
+      );
+
+      // ── Legend (color dots + partner names) ─────────────────────
+      const legendY = chartTopY + chartH + 6;
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "normal");
+      let lx = margin;
+      activePartners.forEach((r, i) => {
+        const colorHex = getColor(reports.findIndex(x => x.partner_id === r.partner_id));
+        const [rr, gg, bb] = hexToRgb(colorHex);
+        doc.setFillColor(rr, gg, bb);
+        doc.circle(lx + 2, legendY + 1.2, 1.8, "F");
+        doc.setTextColor(50, 60, 80);
+        const label = r.partner_name.length > 18 ? r.partner_name.slice(0, 18) + "." : r.partner_name;
+        doc.text(label, lx + 5.5, legendY + 2);
+        lx += doc.getTextWidth(label) + 11;
+        if (lx > pageW - margin - 30) { lx = margin; }
       });
 
-      const chartsEl = reportRef.current.querySelector("[data-charts]") as HTMLElement;
-      if (chartsEl) {
-        const canvas = await html2canvas(chartsEl, { scale: 2, backgroundColor: "#ffffff" });
-        const imgData = canvas.toDataURL("image/png");
-        const chartH = (canvas.height / canvas.width) * (pageW - 28);
-        doc.addImage(imgData, "PNG", 14, 44, pageW - 28, Math.min(chartH, 70));
-      }
+      // ── Data table ───────────────────────────────────────────────
+      const tableStartY = legendY + 8;
 
       autoTable(doc, {
-        startY: 122,
-        head: [["Partner", "Kontakty", "Sprzedane", "Wartość transakcji", "Prowizja łącznie", "Opłacona", "Nieopłacona", "Status"]],
+        startY: tableStartY,
+        margin: { left: margin, right: margin },
+        head: [["Partner", "Kontakty", "Sprzedane", "Wartość transakcji", "Prowizja", "Opłacona", "Nieopłacona", "Status prowizji"]],
         body: [
-          ...reports.map((r) => [r.partner_name, r.total_contacts, r.closed_deals, fmt(r.total_deal_value), fmt(r.total_commission), fmt(r.paid_commission), fmt(r.unpaid_commission), r.unpaid_commission === 0 && r.total_commission > 0 ? "✓ Opłacona" : r.unpaid_commission > 0 ? "⚠ Nieopłacona" : "—"]),
-          ["ŁĄCZNIE", totals.contacts, totals.deals, fmt(totals.dealValue), fmt(totals.commission), fmt(totals.paid), fmt(totals.unpaid), ""],
+          ...reports.map((r) => [
+            r.partner_name,
+            r.total_contacts,
+            r.closed_deals,
+            fmt(r.total_deal_value),
+            fmt(r.total_commission),
+            fmt(r.paid_commission),
+            fmt(r.unpaid_commission),
+            r.unpaid_commission === 0 && r.total_commission > 0
+              ? "Oplacona"
+              : r.unpaid_commission > 0
+              ? "Nieoplacona"
+              : "Brak transakcji",
+          ]),
+          ["LACZNIE", totals.contacts, totals.deals, fmt(totals.dealValue), fmt(totals.commission), fmt(totals.paid), fmt(totals.unpaid), ""],
         ],
-        headStyles: { fillColor: [24, 54, 97], textColor: 255, fontStyle: "bold", fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
+        headStyles: {
+          fillColor: [24, 54, 97],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 8,
+          cellPadding: 3,
+        },
+        bodyStyles: { fontSize: 8, cellPadding: 2.5, textColor: [40, 50, 70] },
         alternateRowStyles: { fillColor: [245, 248, 255] },
+        columnStyles: {
+          0: { fontStyle: "bold" },
+          1: { halign: "center" },
+          2: { halign: "center" },
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right" },
+          6: { halign: "right" },
+          7: { halign: "center" },
+        },
         didParseCell: (data) => {
-          if (data.row.index === reports.length) { data.cell.styles.fontStyle = "bold"; data.cell.styles.fillColor = [200, 215, 240]; }
-          if (data.column.index === 7) { const val = String(data.cell.raw); if (val.includes("✓")) data.cell.styles.textColor = [34, 139, 34]; else if (val.includes("⚠")) data.cell.styles.textColor = [180, 30, 30]; }
+          // totals row
+          if (data.row.index === reports.length) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = [215, 225, 245];
+            data.cell.styles.textColor = [24, 54, 97];
+          }
+          // status column coloring
+          if (data.column.index === 7 && data.section === "body") {
+            const val = String(data.cell.raw);
+            if (val === "Oplacona") {
+              data.cell.styles.textColor = [39, 174, 96];
+              data.cell.styles.fontStyle = "bold";
+            } else if (val === "Nieoplacona") {
+              data.cell.styles.textColor = [200, 50, 50];
+              data.cell.styles.fontStyle = "bold";
+            }
+          }
+          // partner color dot via left border trick
+          if (data.column.index === 0 && data.section === "body" && data.row.index < reports.length) {
+            const colorHex = getColor(data.row.index);
+            const [rr, gg, bb] = hexToRgb(colorHex);
+            data.cell.styles.lineColor = [rr, gg, bb];
+            (data.cell.styles as any).lineWidths = { left: 2.5, top: 0, right: 0, bottom: 0 };
+          }
         },
       });
+
+      // ── Footer ───────────────────────────────────────────────────
+      const pageH = doc.internal.pageSize.getHeight();
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(160, 165, 180);
+      doc.text("Brand & Sell — System Linków Afiliacyjnych", margin, pageH - 5);
+      doc.text(`Strona 1 | ${format(new Date(), "dd.MM.yyyy")}`, pageW - margin, pageH - 5, { align: "right" });
 
       doc.save(`raport-afiliacyjny-${format(new Date(), "yyyy-MM-dd")}.pdf`);
       toast({ title: "PDF wygenerowany", description: "Raport został pobrany." });
