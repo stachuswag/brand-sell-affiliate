@@ -23,6 +23,7 @@ export type Database = {
           id: string
           is_active: boolean
           link_type: Database["public"]["Enums"]["link_type"]
+          offer_id: string | null
           partner_id: string
           property_address: string | null
           property_name: string | null
@@ -37,6 +38,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           link_type?: Database["public"]["Enums"]["link_type"]
+          offer_id?: string | null
           partner_id: string
           property_address?: string | null
           property_name?: string | null
@@ -51,6 +53,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           link_type?: Database["public"]["Enums"]["link_type"]
+          offer_id?: string | null
           partner_id?: string
           property_address?: string | null
           property_name?: string | null
@@ -58,6 +61,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "affiliate_links_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "affiliate_links_partner_id_fkey"
             columns: ["partner_id"]
@@ -199,6 +209,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      offers: {
+        Row: {
+          address: string | null
+          area_m2: number | null
+          city: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          offer_type: string | null
+          price: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          area_m2?: number | null
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          offer_type?: string | null
+          price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          area_m2?: number | null
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          offer_type?: string | null
+          price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       partners: {
         Row: {
