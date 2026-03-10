@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/partners", label: "Partnerzy", icon: Users },
+  { href: "/offers", label: "Oferty", icon: Building2 },
   { href: "/links", label: "Linki afiliacyjne", icon: Link2 },
   { href: "/contacts", label: "Kontakty / Leady", icon: UserCheck },
   { href: "/reports", label: "Raporty", icon: BarChart2 },
