@@ -41,6 +41,7 @@ interface Offer {
   area_m2: number | null;
   offer_type: string;
   description: string | null;
+  commission_percent: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -53,6 +54,7 @@ const emptyForm = {
   area_m2: "",
   offer_type: "sale",
   description: "",
+  commission_percent: "",
 };
 
 const fmt = (n: number) =>
@@ -97,6 +99,7 @@ export default function Offers() {
       area_m2: o.area_m2?.toString() ?? "",
       offer_type: o.offer_type,
       description: o.description ?? "",
+      commission_percent: o.commission_percent?.toString() ?? "",
     });
     setOpen(true);
   };
@@ -114,6 +117,7 @@ export default function Offers() {
       area_m2: form.area_m2 ? parseFloat(form.area_m2) : null,
       offer_type: form.offer_type,
       description: form.description || null,
+      commission_percent: form.commission_percent ? parseFloat(form.commission_percent) : null,
     };
 
     if (editing) {
@@ -188,6 +192,7 @@ export default function Offers() {
                       <TableHead>Typ</TableHead>
                       <TableHead className="text-right">Powierzchnia</TableHead>
                       <TableHead className="text-right">Cena</TableHead>
+                      <TableHead className="text-right">Prowizja</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
                     </TableRow>
@@ -204,7 +209,10 @@ export default function Offers() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right text-sm">{o.area_m2 ? `${o.area_m2} m²` : "—"}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">{o.price ? fmt(o.price) : "—"}</TableCell>
+                         <TableCell className="text-right text-sm font-medium">{o.price ? fmt(o.price) : "—"}</TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">
+                          {o.commission_percent != null ? `${o.commission_percent}%` : "—"}
+                        </TableCell>
                         <TableCell className="text-center">
                           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${o.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
                             {o.is_active ? "Aktywna" : "Nieaktywna"}
@@ -270,6 +278,23 @@ export default function Offers() {
                   <Label>Powierzchnia (m²)</Label>
                   <Input type="number" min="0" step="0.1" value={form.area_m2} onChange={(e) => setForm({ ...form, area_m2: e.target.value })} placeholder="np. 65" />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Prowizja dla partnera (%)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={form.commission_percent}
+                    onChange={(e) => setForm({ ...form, commission_percent: e.target.value })}
+                    placeholder="np. 2.5"
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Prowizja zostanie automatycznie zaproponowana przy zamknięciu transakcji</p>
               </div>
               <div className="space-y-2">
                 <Label>Opis (opcjonalnie)</Label>

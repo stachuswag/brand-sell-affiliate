@@ -56,6 +56,7 @@ interface Contact {
     tracking_code: string;
     property_name: string | null;
     link_type: string;
+    offer_id: string | null;
     partners: { name: string } | null;
   } | null;
 }
@@ -85,7 +86,7 @@ export default function Contacts() {
   const fetchContacts = async () => {
     const { data } = await supabase
       .from("contacts")
-      .select(`*, affiliate_links(tracking_code, property_name, link_type, partners(name))`)
+      .select(`*, affiliate_links(tracking_code, property_name, link_type, offer_id, partners(name))`)
       .order("created_at", { ascending: false });
     if (data) setContacts(data as any);
     setLoading(false);
@@ -109,6 +110,26 @@ export default function Contacts() {
     fetchTransactions();
   };
 
+  const openDealDialogWithCommission = async (c: Contact) => {
+    setSelected(c);
+    let autoCommission = "";
+    // Auto-fill commission from linked offer
+    if (c.affiliate_links?.offer_id) {
+      const { data: offer } = await supabase
+        .from("offers")
+        .select("commission_percent, price")
+        .eq("id", c.affiliate_links.offer_id)
+        .single();
+      if (offer?.commission_percent && offer?.price) {
+        const amount = (offer.price * offer.commission_percent) / 100;
+        autoCommission = amount.toFixed(0);
+      }
+    }
+    setDealForm({ deal_value: "", commission_amount: autoCommission, notes: "" });
+    setDealOpen(true);
+    setDetailOpen(false);
+  };
+
   useEffect(() => {
     fetchContacts();
     fetchPartners();
@@ -129,12 +150,7 @@ export default function Contacts() {
     setDetailOpen(true);
   };
 
-  const openDealDialog = (c: Contact) => {
-    setSelected(c);
-    setDealForm({ deal_value: "", commission_amount: "", notes: "" });
-    setDealOpen(true);
-    setDetailOpen(false);
-  };
+  const openDealDialog = openDealDialogWithCommission;
 
   const handleCloseDeal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -411,6 +427,13 @@ export default function Contacts() {
                     onChange={(e) => setDealForm({ ...dealForm, commission_amount: e.target.value })}
                     placeholder="np. 8500"
                   />
+                  {dealForm.commission_amount && (
+                    <p className="text-xs text-muted-foreground">
+                      {selected?.affiliate_links?.offer_id
+                        ? "✓ Kwota wyliczona automatycznie z prowizji oferty — możesz ją zmienić"
+                        : "Wpisz kwotę prowizji"}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
