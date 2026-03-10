@@ -276,7 +276,22 @@ export default function Offers() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Opis (opcjonalnie)</Label>
+                <Label>Prowizja dla partnera (%)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={form.commission_percent}
+                    onChange={(e) => setForm({ ...form, commission_percent: e.target.value })}
+                    placeholder="np. 2.5"
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Prowizja zostanie automatycznie zaproponowana przy zamknięciu transakcji</p>
+              </div>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Dodatkowe informacje o ofercie..." rows={2} />
               </div>
               <DialogFooter>
