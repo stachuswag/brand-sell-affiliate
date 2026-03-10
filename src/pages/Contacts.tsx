@@ -88,16 +88,15 @@ export default function Contacts() {
   const fetchContacts = async () => {
     const { data } = await supabase
       .from("contacts")
-      .select(`
-        *,
-        affiliate_links (
-          tracking_code, property_name, link_type,
-          partners ( name )
-        )
-      `)
+      .select(`*, affiliate_links(tracking_code, property_name, link_type, partners(name))`)
       .order("created_at", { ascending: false });
     if (data) setContacts(data as any);
     setLoading(false);
+  };
+
+  const fetchTransactions = async () => {
+    const { data } = await supabase.from("transactions").select("id, contact_id, commission_amount, commission_paid, deal_value");
+    if (data) setTransactions(data as Transaction[]);
   };
 
   const fetchPartners = async () => {
@@ -105,9 +104,18 @@ export default function Contacts() {
     if (data) setPartners(data);
   };
 
+  const markCommissionPaid = async (contactId: string, paid: boolean) => {
+    const tx = transactions.find((t) => t.contact_id === contactId);
+    if (!tx) return;
+    await supabase.from("transactions").update({ commission_paid: paid }).eq("id", tx.id);
+    toast({ title: paid ? "Prowizja oznaczona jako opłacona" : "Oznaczono jako nieopłacona" });
+    fetchTransactions();
+  };
+
   useEffect(() => {
     fetchContacts();
     fetchPartners();
+    fetchTransactions();
   }, []);
 
   const updateStatus = async (contactId: string, status: "new" | "in_progress" | "deal_closed" | "no_deal") => {
