@@ -337,7 +337,7 @@ export default function Reports() {
 
         {/* Charts */}
         {!loading && activePartners.length > 0 && (
-          <div data-charts className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div data-charts className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Chart 1 — Contacts per partner */}
             <Card className="border-border/60">
