@@ -293,6 +293,8 @@ export default function Offers() {
                 </div>
                 <p className="text-xs text-muted-foreground">Prowizja zostanie automatycznie zaproponowana przy zamknięciu transakcji</p>
               </div>
+              <div className="space-y-2">
+                <Label>Opis (opcjonalnie)</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Dodatkowe informacje o ofercie..." rows={2} />
               </div>
               <DialogFooter>
