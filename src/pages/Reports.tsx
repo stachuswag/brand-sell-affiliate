@@ -428,7 +428,7 @@ export default function Reports() {
               </CardContent>
             </Card>
 
-            {/* Chart 3 — Commission pie */}
+          
             <Card className="border-border/60">
               <CardHeader className="pb-1 pt-4 px-5">
                 <CardTitle className="text-sm font-semibold text-foreground">Status prowizji</CardTitle>
