@@ -38,6 +38,13 @@ interface Partner {
   name: string;
 }
 
+interface Offer {
+  id: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+}
+
 interface AffiliateLink {
   id: string;
   partner_id: string;
@@ -49,6 +56,7 @@ interface AffiliateLink {
   is_active: boolean;
   expires_at: string | null;
   created_at: string;
+  offer_id: string | null;
   partners: { name: string } | null;
   click_count?: number;
   contact_count?: number;
@@ -69,6 +77,7 @@ function generateCode(partnerName: string, property?: string): string {
 const emptyForm = {
   partner_id: "",
   link_type: "partner" as "partner" | "property",
+  offer_id: "",
   property_name: "",
   property_address: "",
   destination_url: "",
@@ -80,6 +89,7 @@ export default function Links() {
   const { toast } = useToast();
   const [links, setLinks] = useState<AffiliateLink[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AffiliateLink | null>(null);
@@ -103,9 +113,15 @@ export default function Links() {
     if (data) setPartners(data);
   };
 
+  const fetchOffers = async () => {
+    const { data } = await supabase.from("offers").select("id, name, city, address").eq("is_active", true).order("name");
+    if (data) setOffers(data as Offer[]);
+  };
+
   useEffect(() => {
     fetchLinks();
     fetchPartners();
+    fetchOffers();
   }, []);
 
   const openCreate = () => {
@@ -119,6 +135,7 @@ export default function Links() {
     setForm({
       partner_id: l.partner_id,
       link_type: l.link_type,
+      offer_id: l.offer_id ?? "",
       property_name: l.property_name ?? "",
       property_address: l.property_address ?? "",
       destination_url: l.destination_url ?? "",
@@ -127,9 +144,24 @@ export default function Links() {
     setOpen(true);
   };
 
-  const buildTrackingUrl = (code: string) => {
-    return `${window.location.origin}/c/${code}`;
+  // When an offer is selected, auto-fill property fields
+  const handleOfferSelect = (offerId: string) => {
+    if (offerId === "manual") {
+      setForm({ ...form, offer_id: "", property_name: "", property_address: "" });
+      return;
+    }
+    const offer = offers.find((o) => o.id === offerId);
+    if (offer) {
+      setForm({
+        ...form,
+        offer_id: offerId,
+        property_name: offer.name,
+        property_address: [offer.address, offer.city].filter(Boolean).join(", "),
+      });
+    }
   };
+
+  const buildTrackingUrl = (code: string) => `${window.location.origin}/c/${code}`;
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(buildTrackingUrl(code));
@@ -149,6 +181,7 @@ export default function Links() {
     const payload = {
       partner_id: form.partner_id,
       link_type: form.link_type,
+      offer_id: form.offer_id || null,
       property_name: form.property_name || null,
       property_address: form.property_address || null,
       destination_url: form.destination_url || null,
@@ -307,7 +340,7 @@ export default function Links() {
               </div>
               <div className="space-y-2">
                 <Label>Typ linku</Label>
-                <Select value={form.link_type} onValueChange={(v) => setForm({ ...form, link_type: v as "partner" | "property" })}>
+                <Select value={form.link_type} onValueChange={(v) => setForm({ ...form, link_type: v as "partner" | "property", offer_id: "", property_name: "", property_address: "" })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -317,29 +350,49 @@ export default function Links() {
                   </SelectContent>
                 </Select>
               </div>
+
               {form.link_type === "property" && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label>Nazwa nieruchomości</Label>
-                    <Input value={form.property_name} onChange={(e) => setForm({ ...form, property_name: e.target.value })} placeholder="np. Apartament Centrum" />
+                    <Label>Wybierz ofertę z bazy</Label>
+                    <Select value={form.offer_id || "manual"} onValueChange={handleOfferSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Wybierz ofertę lub wpisz ręcznie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual">— Wpisz ręcznie —</SelectItem>
+                        {offers.map((o) => (
+                          <SelectItem key={o.id} value={o.id}>
+                            {o.name}{o.city ? ` • ${o.city}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Adres</Label>
-                    <Input value={form.property_address} onChange={(e) => setForm({ ...form, property_address: e.target.value })} placeholder="ul. Marszałkowska 1" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Nazwa nieruchomości</Label>
+                      <Input value={form.property_name} onChange={(e) => setForm({ ...form, property_name: e.target.value, offer_id: "" })} placeholder="np. Apartament Centrum" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Adres</Label>
+                      <Input value={form.property_address} onChange={(e) => setForm({ ...form, property_address: e.target.value, offer_id: "" })} placeholder="ul. Marszałkowska 1" />
+                    </div>
                   </div>
                 </div>
               )}
+
               <div className="space-y-2">
                 <Label>Przekierowanie po kliknięciu linku</Label>
                 <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2">
-                  <span className="mt-0.5 h-2 w-2 rounded-full bg-success flex-shrink-0 mt-1.5" />
+                  <span className="h-2 w-2 rounded-full bg-success flex-shrink-0 mt-1.5" />
                   <div className="text-xs text-foreground">
                     <span className="font-medium">Wbudowany formularz kontaktowy</span>
                     <span className="text-muted-foreground"> — klient wypełnia formularz, Ty dostajesz powiadomienie</span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie) — np. jeśli masz własną stronę:</p>
+                  <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie):</p>
                   <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt (opcjonalnie)" />
                 </div>
               </div>
