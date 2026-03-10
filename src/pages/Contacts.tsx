@@ -150,12 +150,7 @@ export default function Contacts() {
     setDetailOpen(true);
   };
 
-  const openDealDialog = (c: Contact) => {
-    setSelected(c);
-    setDealForm({ deal_value: "", commission_amount: "", notes: "" });
-    setDealOpen(true);
-    setDetailOpen(false);
-  };
+  const openDealDialog = openDealDialogWithCommission;
 
   const handleCloseDeal = async (e: React.FormEvent) => {
     e.preventDefault();
