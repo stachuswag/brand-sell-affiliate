@@ -99,6 +99,7 @@ export default function Offers() {
       area_m2: o.area_m2?.toString() ?? "",
       offer_type: o.offer_type,
       description: o.description ?? "",
+      commission_percent: o.commission_percent?.toString() ?? "",
     });
     setOpen(true);
   };
@@ -116,6 +117,7 @@ export default function Offers() {
       area_m2: form.area_m2 ? parseFloat(form.area_m2) : null,
       offer_type: form.offer_type,
       description: form.description || null,
+      commission_percent: form.commission_percent ? parseFloat(form.commission_percent) : null,
     };
 
     if (editing) {
