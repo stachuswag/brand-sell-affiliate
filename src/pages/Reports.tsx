@@ -26,10 +26,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
   Cell,
-  Legend,
 } from "recharts";
 import { Download, TrendingUp, Euro, Users, CheckCircle2, Loader2, Home } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
