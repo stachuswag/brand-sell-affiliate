@@ -427,6 +427,13 @@ export default function Contacts() {
                     onChange={(e) => setDealForm({ ...dealForm, commission_amount: e.target.value })}
                     placeholder="np. 8500"
                   />
+                  {dealForm.commission_amount && (
+                    <p className="text-xs text-muted-foreground">
+                      {selected?.affiliate_links?.offer_id
+                        ? "✓ Kwota wyliczona automatycznie z prowizji oferty — możesz ją zmienić"
+                        : "Wpisz kwotę prowizji"}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
