@@ -429,52 +429,6 @@ export default function Reports() {
             </Card>
 
           
-            <Card className="border-border/60">
-              <CardHeader className="pb-1 pt-4 px-5">
-                <CardTitle className="text-sm font-semibold text-foreground">Status prowizji</CardTitle>
-                <p className="text-xs text-muted-foreground">Opłacone vs nieopłacone</p>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center pb-4 pt-1">
-                {pieData.length === 0 ? (
-                  <div className="h-[240px] flex items-center justify-center text-sm text-muted-foreground">Brak danych prowizji</div>
-                ) : (
-                  <>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={pieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={90}
-                          paddingAngle={3}
-                          dataKey="value"
-                          labelLine={false}
-                          label={renderCustomLabel}
-                        >
-                          {pieData.map((_, i) => (
-                            <Cell key={i} fill={PIE_COLORS[i]} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomPieTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    {/* Custom legend under donut */}
-                    <div className="flex gap-6 mt-2">
-                      {pieData.map((entry, i) => (
-                        <div key={entry.name} className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-3 w-3 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                            <span className="text-xs font-medium text-foreground">{entry.name}</span>
-                          </div>
-                          <span className="text-sm font-bold" style={{ color: PIE_COLORS[i] }}>{fmt(entry.value)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
           </div>
         )}
 
