@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building2 } from "lucide-react";
+import { Plus, Pencil, Building2, Percent, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Offer {
@@ -41,7 +41,9 @@ interface Offer {
   area_m2: number | null;
   offer_type: string;
   description: string | null;
+  commission_type: string;
   commission_percent: number | null;
+  commission_amount: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -54,7 +56,8 @@ const emptyForm = {
   area_m2: "",
   offer_type: "sale",
   description: "",
-  commission_percent: "",
+  commission_type: "percent" as "percent" | "amount",
+  commission_value: "",
 };
 
 const fmt = (n: number) =>
@@ -91,6 +94,7 @@ export default function Offers() {
 
   const openEdit = (o: Offer) => {
     setEditing(o);
+    const commType = (o.commission_type as "percent" | "amount") ?? "percent";
     setForm({
       name: o.name,
       address: o.address ?? "",
@@ -99,7 +103,10 @@ export default function Offers() {
       area_m2: o.area_m2?.toString() ?? "",
       offer_type: o.offer_type,
       description: o.description ?? "",
-      commission_percent: o.commission_percent?.toString() ?? "",
+      commission_type: commType,
+      commission_value: commType === "percent"
+        ? (o.commission_percent?.toString() ?? "")
+        : (o.commission_amount?.toString() ?? ""),
     });
     setOpen(true);
   };
@@ -117,7 +124,9 @@ export default function Offers() {
       area_m2: form.area_m2 ? parseFloat(form.area_m2) : null,
       offer_type: form.offer_type,
       description: form.description || null,
-      commission_percent: form.commission_percent ? parseFloat(form.commission_percent) : null,
+      commission_type: form.commission_type,
+      commission_percent: form.commission_type === "percent" && form.commission_value ? parseFloat(form.commission_value) : null,
+      commission_amount: form.commission_type === "amount" && form.commission_value ? parseFloat(form.commission_value) : null,
     };
 
     if (editing) {
@@ -138,6 +147,12 @@ export default function Offers() {
   const toggleActive = async (o: Offer) => {
     await supabase.from("offers").update({ is_active: !o.is_active }).eq("id", o.id);
     fetchOffers();
+  };
+
+  const getCommissionDisplay = (o: Offer) => {
+    if (o.commission_type === "amount" && o.commission_amount != null) return fmt(o.commission_amount);
+    if (o.commission_percent != null) return `${o.commission_percent}%`;
+    return "—";
   };
 
   const filtered = filterActive === "all" ? offers : offers.filter((o) => String(o.is_active) === filterActive);
@@ -188,9 +203,7 @@ export default function Offers() {
                     <TableRow>
                       <TableHead>Nazwa</TableHead>
                       <TableHead>Miasto</TableHead>
-                      <TableHead>Adres</TableHead>
                       <TableHead>Typ</TableHead>
-                      <TableHead className="text-right">Powierzchnia</TableHead>
                       <TableHead className="text-right">Cena</TableHead>
                       <TableHead className="text-right">Prowizja</TableHead>
                       <TableHead className="text-center">Status</TableHead>
@@ -200,18 +213,24 @@ export default function Offers() {
                   <TableBody>
                     {filtered.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell className="font-medium">{o.name}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{o.name}</div>
+                          {o.address && <div className="text-xs text-muted-foreground mt-0.5">{o.address}</div>}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{o.city ?? "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{o.address ?? "—"}</TableCell>
                         <TableCell>
                           <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-muted text-foreground border-border">
                             {o.offer_type === "sale" ? "Sprzedaż" : o.offer_type === "rent" ? "Wynajem" : o.offer_type}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right text-sm">{o.area_m2 ? `${o.area_m2} m²` : "—"}</TableCell>
-                         <TableCell className="text-right text-sm font-medium">{o.price ? fmt(o.price) : "—"}</TableCell>
-                        <TableCell className="text-right text-sm text-muted-foreground">
-                          {o.commission_percent != null ? `${o.commission_percent}%` : "—"}
+                        <TableCell className="text-right text-sm font-medium">{o.price ? fmt(o.price) : "—"}</TableCell>
+                        <TableCell className="text-right text-sm">
+                          <div className="flex items-center justify-end gap-1">
+                            {o.commission_type === "amount"
+                              ? <DollarSign className="h-3 w-3 text-muted-foreground" />
+                              : <Percent className="h-3 w-3 text-muted-foreground" />}
+                            <span className="font-medium">{getCommissionDisplay(o)}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${o.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
@@ -279,23 +298,51 @@ export default function Offers() {
                   <Input type="number" min="0" step="0.1" value={form.area_m2} onChange={(e) => setForm({ ...form, area_m2: e.target.value })} placeholder="np. 65" />
                 </div>
               </div>
+
+              {/* Commission block */}
               <div className="space-y-2">
-                <Label>Prowizja dla partnera (%)</Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={form.commission_percent}
-                    onChange={(e) => setForm({ ...form, commission_percent: e.target.value })}
-                    placeholder="np. 2.5"
-                    className="pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                <Label>Prowizja dla partnera</Label>
+                <div className="flex gap-2">
+                  <div className="flex rounded-md border border-input overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, commission_type: "percent", commission_value: "" })}
+                      className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${form.commission_type === "percent" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                    >
+                      <Percent className="h-3.5 w-3.5" /> Procent
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, commission_type: "amount", commission_value: "" })}
+                      className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${form.commission_type === "amount" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                    >
+                      <DollarSign className="h-3.5 w-3.5" /> Kwota
+                    </button>
+                  </div>
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      step={form.commission_type === "percent" ? "0.1" : "100"}
+                      max={form.commission_type === "percent" ? "100" : undefined}
+                      value={form.commission_value}
+                      onChange={(e) => setForm({ ...form, commission_value: e.target.value })}
+                      placeholder={form.commission_type === "percent" ? "np. 2.5" : "np. 8500"}
+                      className="pr-10"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">
+                      {form.commission_type === "percent" ? "%" : "PLN"}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Prowizja zostanie automatycznie zaproponowana przy zamknięciu transakcji</p>
+                {form.commission_type === "percent" && form.commission_value && form.price && (
+                  <p className="text-xs text-muted-foreground">
+                    = {fmt((parseFloat(form.price) * parseFloat(form.commission_value)) / 100)} przy podanej cenie
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">Prowizja zostanie auto-uzupełniona przy zamknięciu transakcji</p>
               </div>
+
               <div className="space-y-2">
                 <Label>Opis (opcjonalnie)</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Dodatkowe informacje o ofercie..." rows={2} />

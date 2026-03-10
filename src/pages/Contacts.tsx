@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCheck, TrendingUp, Filter } from "lucide-react";
+import { UserCheck, TrendingUp, Filter, Phone, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -68,6 +68,9 @@ const statusConfig = {
   no_deal: { label: "Brak transakcji", className: "bg-red-50 text-red-700 border-red-200" },
 };
 
+const fmt = (n: number) =>
+  new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(n);
+
 export default function Contacts() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -106,23 +109,25 @@ export default function Contacts() {
     const tx = transactions.find((t) => t.contact_id === contactId);
     if (!tx) return;
     await supabase.from("transactions").update({ commission_paid: paid }).eq("id", tx.id);
-    toast({ title: paid ? "Prowizja oznaczona jako opłacona" : "Oznaczono jako nieopłacona" });
+    toast({ title: paid ? "Prowizja oznaczona jako opłacona ✓" : "Prowizja oznaczona jako nieopłacona" });
     fetchTransactions();
   };
 
-  const openDealDialogWithCommission = async (c: Contact) => {
+  const openDealDialog = async (c: Contact) => {
     setSelected(c);
     let autoCommission = "";
-    // Auto-fill commission from linked offer
     if (c.affiliate_links?.offer_id) {
       const { data: offer } = await supabase
         .from("offers")
-        .select("commission_percent, price")
+        .select("commission_type, commission_percent, commission_amount, price")
         .eq("id", c.affiliate_links.offer_id)
         .single();
-      if (offer?.commission_percent && offer?.price) {
-        const amount = (offer.price * offer.commission_percent) / 100;
-        autoCommission = amount.toFixed(0);
+      if (offer) {
+        if (offer.commission_type === "amount" && offer.commission_amount != null) {
+          autoCommission = offer.commission_amount.toFixed(0);
+        } else if (offer.commission_percent != null && offer.price != null) {
+          autoCommission = ((offer.price * offer.commission_percent) / 100).toFixed(0);
+        }
       }
     }
     setDealForm({ deal_value: "", commission_amount: autoCommission, notes: "" });
@@ -150,21 +155,16 @@ export default function Contacts() {
     setDetailOpen(true);
   };
 
-  const openDealDialog = openDealDialogWithCommission;
-
   const handleCloseDeal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
     setSaving(true);
 
-    // Mark contact as deal_closed
     await supabase.from("contacts").update({ status: "deal_closed" }).eq("id", selected.id);
 
-    // Create transaction
     const { error } = await supabase.from("transactions").insert({
       contact_id: selected.id,
       affiliate_link_id: selected.affiliate_link_id,
-      partner_id: selected.affiliate_links?.partners ? undefined : undefined,
       property_name: selected.affiliate_links?.property_name,
       deal_value: dealForm.deal_value ? parseFloat(dealForm.deal_value) : null,
       commission_amount: dealForm.commission_amount ? parseFloat(dealForm.commission_amount) : null,
@@ -181,6 +181,7 @@ export default function Contacts() {
     setSaving(false);
     setDealOpen(false);
     fetchContacts();
+    fetchTransactions();
   };
 
   const filtered = contacts.filter((c) => {
@@ -256,13 +257,23 @@ export default function Contacts() {
                   <TableBody>
                     {filtered.map((c) => {
                       const s = statusConfig[c.status];
+                      const tx = transactions.find((t) => t.contact_id === c.id);
                       return (
                         <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(c)}>
                           <TableCell className="font-medium">{c.full_name}</TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="text-sm space-y-0.5">
                               {c.email && <div className="text-muted-foreground">{c.email}</div>}
-                              {c.phone && <div className="text-muted-foreground">{c.phone}</div>}
+                              {c.phone && (
+                                <a
+                                  href={`tel:${c.phone}`}
+                                  className="flex items-center gap-1 text-primary hover:underline font-medium"
+                                  title="Zadzwoń"
+                                >
+                                  <Phone className="h-3 w-3" />
+                                  {c.phone}
+                                </a>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="text-sm">{c.affiliate_links?.partners?.name ?? "—"}</TableCell>
@@ -277,6 +288,15 @@ export default function Contacts() {
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1 flex-wrap">
+                              {/* Call button */}
+                              {c.phone && (
+                                <a href={`tel:${c.phone}`} title="Zadzwoń">
+                                  <Button size="sm" variant="outline" className="h-7 w-7 p-0">
+                                    <Phone className="h-3 w-3" />
+                                  </Button>
+                                </a>
+                              )}
+                              {/* Deal button */}
                               {c.status !== "deal_closed" && (
                                 <Button
                                   size="sm"
@@ -287,20 +307,22 @@ export default function Contacts() {
                                   <TrendingUp className="h-3 w-3" /> Transakcja
                                 </Button>
                               )}
-                              {c.status === "deal_closed" && (() => {
-                                const tx = transactions.find((t) => t.contact_id === c.id);
-                                if (!tx) return null;
-                                return (
-                                  <Button
-                                    size="sm"
-                                    variant={tx.commission_paid ? "outline" : "default"}
-                                    className={`h-7 px-2 text-xs gap-1 ${tx.commission_paid ? "text-muted-foreground" : "bg-gold text-primary-foreground hover:bg-gold/90"}`}
-                                    onClick={() => markCommissionPaid(c.id, !tx.commission_paid)}
-                                  >
-                                    {tx.commission_paid ? "✓ Prowizja opłacona" : "Oznacz prowizję"}
-                                  </Button>
-                                );
-                              })()}
+                              {/* Commission paid toggle */}
+                              {c.status === "deal_closed" && tx && (
+                                <Button
+                                  size="sm"
+                                  variant={tx.commission_paid ? "outline" : "default"}
+                                  className={`h-7 px-2 text-xs gap-1 ${tx.commission_paid ? "text-muted-foreground border-border" : "bg-primary text-primary-foreground"}`}
+                                  onClick={() => markCommissionPaid(c.id, !tx.commission_paid)}
+                                  title={tx.commission_paid ? "Kliknij aby cofnąć" : "Oznacz prowizję jako opłaconą"}
+                                >
+                                  {tx.commission_paid ? (
+                                    <><CheckCircle className="h-3 w-3 text-success" /> Opłacona</>
+                                  ) : (
+                                    <>Prowizja nieopłacona</>
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -316,73 +338,114 @@ export default function Contacts() {
         {/* Contact detail dialog */}
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
           <DialogContent className="max-w-lg">
-            {selected && (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                      {selected.full_name.charAt(0).toUpperCase()}
+            {selected && (() => {
+              const tx = transactions.find((t) => t.contact_id === selected.id);
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                        {selected.full_name.charAt(0).toUpperCase()}
+                      </div>
+                      {selected.full_name}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Email</p>
+                        <p className="font-medium">{selected.email ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Telefon</p>
+                        {selected.phone ? (
+                          <a href={`tel:${selected.phone}`} className="font-medium text-primary flex items-center gap-1 hover:underline">
+                            <Phone className="h-3.5 w-3.5" /> {selected.phone}
+                          </a>
+                        ) : <p className="font-medium">—</p>}
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Partner</p>
+                        <p className="font-medium">{selected.affiliate_links?.partners?.name ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Nieruchomość</p>
+                        <p className="font-medium">{selected.affiliate_links?.property_name ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Kod linku</p>
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{selected.affiliate_links?.tracking_code ?? "—"}</code>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Data kontaktu</p>
+                        <p className="font-medium">{format(new Date(selected.created_at), "d MMM yyyy HH:mm", { locale: pl })}</p>
+                      </div>
                     </div>
-                    {selected.full_name}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground text-xs">Email</p>
-                      <p className="font-medium">{selected.email ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Telefon</p>
-                      <p className="font-medium">{selected.phone ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Partner</p>
-                      <p className="font-medium">{selected.affiliate_links?.partners?.name ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Nieruchomość</p>
-                      <p className="font-medium">{selected.affiliate_links?.property_name ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Kod linku</p>
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{selected.affiliate_links?.tracking_code ?? "—"}</code>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Data kontaktu</p>
-                      <p className="font-medium">{format(new Date(selected.created_at), "d MMM yyyy HH:mm", { locale: pl })}</p>
+
+                    {/* Commission info if deal closed */}
+                    {tx && (
+                      <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+                        <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Transakcja</p>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <p className="text-muted-foreground text-xs">Wartość</p>
+                            <p className="font-medium">{tx.deal_value ? fmt(tx.deal_value) : "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Prowizja</p>
+                            <p className="font-medium">{tx.commission_amount ? fmt(tx.commission_amount) : "—"}</p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={tx.commission_paid ? "outline" : "default"}
+                          className={`w-full gap-2 ${tx.commission_paid ? "border-success text-success hover:bg-success/10" : ""}`}
+                          onClick={() => markCommissionPaid(selected.id, !tx.commission_paid)}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          {tx.commission_paid ? "Prowizja opłacona — kliknij aby cofnąć" : "Oznacz prowizję jako opłaconą"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {selected.message && (
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">Wiadomość</p>
+                        <p className="text-sm bg-muted rounded-lg p-3">{selected.message}</p>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Status</Label>
+                      <Select value={selected.status} onValueChange={(v) => updateStatus(selected.id, v as "new" | "in_progress" | "deal_closed" | "no_deal")}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(statusConfig).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  {selected.message && (
-                    <div>
-                      <p className="text-muted-foreground text-xs mb-1">Wiadomość</p>
-                      <p className="text-sm bg-muted rounded-lg p-3">{selected.message}</p>
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Status</Label>
-                    <Select value={selected.status} onValueChange={(v) => updateStatus(selected.id, v as "new" | "in_progress" | "deal_closed" | "no_deal")}>
-                      <SelectTrigger className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(statusConfig).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setDetailOpen(false)}>Zamknij</Button>
-                  {selected.status !== "deal_closed" && (
-                    <Button onClick={() => openDealDialog(selected)} className="gap-2">
-                      <TrendingUp className="h-4 w-4" /> Oznacz transakcję
-                    </Button>
-                  )}
-                </DialogFooter>
-              </>
-            )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDetailOpen(false)}>Zamknij</Button>
+                    {selected.phone && (
+                      <a href={`tel:${selected.phone}`}>
+                        <Button variant="outline" className="gap-2">
+                          <Phone className="h-4 w-4" /> Zadzwoń
+                        </Button>
+                      </a>
+                    )}
+                    {selected.status !== "deal_closed" && (
+                      <Button onClick={() => openDealDialog(selected)} className="gap-2">
+                        <TrendingUp className="h-4 w-4" /> Oznacz transakcję
+                      </Button>
+                    )}
+                  </DialogFooter>
+                </>
+              );
+            })()}
           </DialogContent>
         </Dialog>
 
@@ -391,7 +454,7 @@ export default function Contacts() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-green-600" />
+                <TrendingUp className="h-5 w-5 text-success" />
                 Oznacz transakcję jako zawartą
               </DialogTitle>
             </DialogHeader>
@@ -427,12 +490,8 @@ export default function Contacts() {
                     onChange={(e) => setDealForm({ ...dealForm, commission_amount: e.target.value })}
                     placeholder="np. 8500"
                   />
-                  {dealForm.commission_amount && (
-                    <p className="text-xs text-muted-foreground">
-                      {selected?.affiliate_links?.offer_id
-                        ? "✓ Kwota wyliczona automatycznie z prowizji oferty — możesz ją zmienić"
-                        : "Wpisz kwotę prowizji"}
-                    </p>
+                  {dealForm.commission_amount && selected?.affiliate_links?.offer_id && (
+                    <p className="text-xs text-success">✓ Auto-uzupełniono z oferty</p>
                   )}
                 </div>
               </div>
@@ -442,7 +501,8 @@ export default function Contacts() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDealOpen(false)}>Anuluj</Button>
-                <Button type="submit" disabled={saving} className="bg-green-600 hover:bg-green-700 text-white">
+                <Button type="submit" disabled={saving} className="gap-2">
+                  <CheckCircle className="h-4 w-4" />
                   {saving ? "Zapisywanie..." : "Potwierdź transakcję"}
                 </Button>
               </DialogFooter>

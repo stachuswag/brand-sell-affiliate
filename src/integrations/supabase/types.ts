@@ -215,7 +215,9 @@ export type Database = {
           address: string | null
           area_m2: number | null
           city: string | null
+          commission_amount: number | null
           commission_percent: number | null
+          commission_type: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -230,7 +232,9 @@ export type Database = {
           address?: string | null
           area_m2?: number | null
           city?: string | null
+          commission_amount?: number | null
           commission_percent?: number | null
+          commission_type?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -245,7 +249,9 @@ export type Database = {
           address?: string | null
           area_m2?: number | null
           city?: string | null
+          commission_amount?: number | null
           commission_percent?: number | null
+          commission_type?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
