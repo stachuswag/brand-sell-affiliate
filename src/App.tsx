@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Partners from "./pages/Partners";
+import Offers from "./pages/Offers";
 import Links from "./pages/Links";
 import Contacts from "./pages/Contacts";
 import Reports from "./pages/Reports";
