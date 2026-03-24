@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Eye, EyeOff, ArrowLeft, UserX, Lock } from "lucide-react";
+import { Building2, Eye, EyeOff, ArrowLeft, UserX, Lock, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {
@@ -15,7 +15,7 @@ interface Partner {
   agent_user_id: string | null;
 }
 
-type Step = "select" | "login" | "no-account";
+type Step = "select" | "login" | "no-account" | "admin-login";
 
 export default function Login() {
   const { signIn } = useAuth();
