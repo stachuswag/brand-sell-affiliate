@@ -22,6 +22,7 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean
+          landing_page_id: string | null
           link_type: Database["public"]["Enums"]["link_type"]
           offer_id: string | null
           partner_id: string
@@ -37,6 +38,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          landing_page_id?: string | null
           link_type?: Database["public"]["Enums"]["link_type"]
           offer_id?: string | null
           partner_id: string
@@ -52,6 +54,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          landing_page_id?: string | null
           link_type?: Database["public"]["Enums"]["link_type"]
           offer_id?: string | null
           partner_id?: string
@@ -61,6 +64,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "affiliate_links_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "affiliate_links_offer_id_fkey"
             columns: ["offer_id"]
@@ -126,6 +136,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      landing_pages: {
+        Row: {
+          ai_prompt: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          generated_content: Json | null
+          hero_image_url: string | null
+          id: string
+          images: Json | null
+          is_published: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_prompt?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          generated_content?: Json | null
+          hero_image_url?: string | null
+          id?: string
+          images?: Json | null
+          is_published?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_prompt?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          generated_content?: Json | null
+          hero_image_url?: string | null
+          id?: string
+          images?: Json | null
+          is_published?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       link_clicks: {
         Row: {

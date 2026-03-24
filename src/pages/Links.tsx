@@ -45,6 +45,11 @@ interface Offer {
   address: string | null;
 }
 
+interface LandingPage {
+  id: string;
+  title: string;
+}
+
 interface AffiliateLink {
   id: string;
   partner_id: string;
@@ -57,6 +62,7 @@ interface AffiliateLink {
   expires_at: string | null;
   created_at: string;
   offer_id: string | null;
+  landing_page_id: string | null;
   partners: { name: string } | null;
   click_count?: number;
   contact_count?: number;
@@ -82,6 +88,7 @@ const emptyForm = {
   property_address: "",
   destination_url: "",
   expires_at: "",
+  landing_page_id: "",
 };
 
 export default function Links() {
@@ -90,6 +97,7 @@ export default function Links() {
   const [links, setLinks] = useState<AffiliateLink[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AffiliateLink | null>(null);
@@ -118,10 +126,16 @@ export default function Links() {
     if (data) setOffers(data as Offer[]);
   };
 
+  const fetchLandingPages = async () => {
+    const { data } = await supabase.from("landing_pages").select("id, title").eq("is_published", true).order("title");
+    if (data) setLandingPages(data as LandingPage[]);
+  };
+
   useEffect(() => {
     fetchLinks();
     fetchPartners();
     fetchOffers();
+    fetchLandingPages();
   }, []);
 
   const openCreate = () => {
@@ -140,6 +154,7 @@ export default function Links() {
       property_address: l.property_address ?? "",
       destination_url: l.destination_url ?? "",
       expires_at: l.expires_at ? l.expires_at.split("T")[0] : "",
+      landing_page_id: l.landing_page_id ?? "",
     });
     setOpen(true);
   };
@@ -186,6 +201,7 @@ export default function Links() {
       property_address: form.property_address || null,
       destination_url: form.destination_url || null,
       expires_at: form.expires_at || null,
+      landing_page_id: form.landing_page_id || null,
     };
 
     if (editing) {
@@ -383,6 +399,27 @@ export default function Links() {
               )}
 
               <div className="space-y-2">
+                <Label>Landing Page (opcjonalnie)</Label>
+                <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2 mb-2">
+                  <span className="h-2 w-2 rounded-full bg-accent flex-shrink-0 mt-1.5" />
+                  <div className="text-xs text-foreground">
+                    <span className="font-medium">Wybierz landing page</span>
+                    <span className="text-muted-foreground"> — klient zobaczy dedykowaną stronę z galerią i formularzem</span>
+                  </div>
+                </div>
+                <Select value={form.landing_page_id || "none"} onValueChange={(v) => setForm({ ...form, landing_page_id: v === "none" ? "" : v, destination_url: v !== "none" ? "" : form.destination_url })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Bez landing page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Bez landing page —</SelectItem>
+                    {landingPages.map((lp) => (
+                      <SelectItem key={lp.id} value={lp.id}>{lp.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Przekierowanie po kliknięciu linku</Label>
                 <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2">
                   <span className="h-2 w-2 rounded-full bg-success flex-shrink-0 mt-1.5" />
@@ -391,10 +428,12 @@ export default function Links() {
                     <span className="text-muted-foreground"> — klient wypełnia formularz, Ty dostajesz powiadomienie</span>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie):</p>
-                  <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt (opcjonalnie)" />
-                </div>
+                {!form.landing_page_id && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie):</p>
+                    <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt (opcjonalnie)" />
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Data ważności (opcjonalnie)</Label>

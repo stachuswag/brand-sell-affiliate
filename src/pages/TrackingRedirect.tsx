@@ -14,6 +14,7 @@ interface LinkInfo {
   tracking_code: string;
   destination_url: string | null;
   property_name: string | null;
+  landing_page_id: string | null;
   is_active: boolean;
   partners: { name: string } | null;
 }
@@ -35,7 +36,7 @@ export default function TrackingRedirect() {
 
       const { data: link } = await supabase
         .from("affiliate_links")
-        .select("id, tracking_code, destination_url, property_name, is_active, partners(name)")
+        .select("id, tracking_code, destination_url, property_name, landing_page_id, is_active, partners(name)")
         .eq("tracking_code", code)
         .maybeSingle();
 
@@ -53,7 +54,12 @@ export default function TrackingRedirect() {
         referrer: document.referrer || null,
       });
 
-      if (link.destination_url) {
+      const lp = (link as { landing_page_id: string | null }).landing_page_id;
+
+      if (lp) {
+        // Redirect to landing page
+        window.location.href = `${window.location.origin}/lp/${lp}?ref=${code}`;
+      } else if (link.destination_url) {
         // Redirect to external URL after short delay
         setRedirecting(true);
         setTimeout(() => {
