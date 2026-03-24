@@ -27,6 +27,7 @@ import {
   Building2,
   LayoutTemplate,
   Send,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,12 +39,14 @@ const adminNavItems = [
   { href: "/landing-pages", label: "Landing Pages", icon: LayoutTemplate },
   { href: "/contacts", label: "Kontakty / Leady", icon: UserCheck },
   { href: "/reports", label: "Raporty", icon: BarChart2 },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/send-files", label: "Wyślij pliki", icon: Send },
   { href: "/agents", label: "Konta agentów", icon: UserCheck },
 ];
 
 const agentNavItems = [
   { href: "/agent", label: "Mój panel", icon: LayoutDashboard },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
 ];
 
 function NavContent({ onClose }: { onClose?: () => void }) {
