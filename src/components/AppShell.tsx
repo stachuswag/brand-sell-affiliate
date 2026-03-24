@@ -96,7 +96,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.email}</p>
             <p className="text-xs text-sidebar-foreground/60">
-              {role === "admin" ? "Administrator" : "Pracownik"}
+              {role === "admin" ? "Administrator" : role === "agent" ? "Agent" : "Pracownik"}
             </p>
           </div>
         </div>

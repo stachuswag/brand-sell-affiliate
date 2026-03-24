@@ -16,7 +16,9 @@ import Reports from "./pages/Reports";
 import TrackingRedirect from "./pages/TrackingRedirect";
 import LandingPages from "./pages/LandingPages";
 import LandingPageView from "./pages/LandingPageView";
-import SendFiles from "./pages/SendFiles";
+import AgentDashboard from "./pages/AgentDashboard";
+import Agents from "./pages/Agents";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
