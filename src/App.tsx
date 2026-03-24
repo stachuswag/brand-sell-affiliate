@@ -17,6 +17,8 @@ import TrackingRedirect from "./pages/TrackingRedirect";
 import LandingPages from "./pages/LandingPages";
 import LandingPageView from "./pages/LandingPageView";
 import SendFiles from "./pages/SendFiles";
+import AgentDashboard from "./pages/AgentDashboard";
+import Agents from "./pages/Agents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,7 +36,10 @@ const App = () => (
             <Route path="/c/:code" element={<TrackingRedirect />} />
             <Route path="/lp/:id" element={<LandingPageView />} />
 
-            {/* Protected routes */}
+            {/* Protected routes — agent */}
+            <Route path="/agent" element={<ProtectedRoute><AgentDashboard /></ProtectedRoute>} />
+
+            {/* Protected routes — admin/employee */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/partners" element={<ProtectedRoute><Partners /></ProtectedRoute>} />
@@ -44,6 +49,7 @@ const App = () => (
             <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/send-files" element={<ProtectedRoute><SendFiles /></ProtectedRoute>} />
+            <Route path="/agents" element={<ProtectedRoute requireAdmin><Agents /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

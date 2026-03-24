@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/partners", label: "Partnerzy", icon: Users },
   { href: "/offers", label: "Oferty", icon: Building2 },
@@ -39,6 +39,11 @@ const navItems = [
   { href: "/contacts", label: "Kontakty / Leady", icon: UserCheck },
   { href: "/reports", label: "Raporty", icon: BarChart2 },
   { href: "/send-files", label: "Wyślij pliki", icon: Send },
+  { href: "/agents", label: "Konta agentów", icon: UserCheck },
+];
+
+const agentNavItems = [
+  { href: "/agent", label: "Mój panel", icon: LayoutDashboard },
 ];
 
 function NavContent({ onClose }: { onClose?: () => void }) {
@@ -60,7 +65,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {(role === "agent" ? agentNavItems : adminNavItems).map(({ href, label, icon: Icon }) => {
           const active = location.pathname === href;
           return (
             <Link
@@ -91,7 +96,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.email}</p>
             <p className="text-xs text-sidebar-foreground/60">
-              {role === "admin" ? "Administrator" : "Pracownik"}
+              {role === "admin" ? "Administrator" : role === "agent" ? "Agent" : "Pracownik"}
             </p>
           </div>
         </div>

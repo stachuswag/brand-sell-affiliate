@@ -9,7 +9,7 @@ import { Building2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, role } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
@@ -25,7 +25,16 @@ export default function Login() {
     if (error) {
       toast({ title: "Błąd logowania", description: "Nieprawidłowy email lub hasło.", variant: "destructive" });
     } else {
-      navigate("/dashboard");
+      // Role might not be loaded yet; let ProtectedRoute handle redirect
+      // but we check after a tick
+      setTimeout(() => {
+        const currentRole = role;
+        if (currentRole === "agent") {
+          navigate("/agent");
+        } else {
+          navigate("/dashboard");
+        }
+      }, 300);
     }
   };
 
