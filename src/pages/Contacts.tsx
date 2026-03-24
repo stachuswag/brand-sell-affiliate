@@ -350,6 +350,16 @@ export default function Contacts() {
                                   )}
                                 </Button>
                               )}
+                              {/* Delete button */}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => { e.stopPropagation(); setDeleteContact(c); }}
+                                title="Usuń kontakt"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
