@@ -86,14 +86,22 @@ export default function LandingPageView() {
   const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
+    const loadPage = async (query: { id?: string; slug?: string }) => {
+      let req = supabase.from("landing_pages").select("*").eq("is_published", true);
+      if (query.id) req = req.eq("id", query.id);
+      else if (query.slug) req = req.eq("slug", query.slug);
+      const { data } = await req.maybeSingle();
+      if (!data) { setNotFound(true); return; }
+      setPage(data as LandingPage);
+    };
+
     const load = async () => {
       if (!id) return;
 
-      // If id looks like a tracking code (not UUID), look up the link first
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
       if (!isUUID) {
-        // It's a tracking code coming from /c/:code redirect
+        // Could be a tracking code OR a slug — check affiliate_links first
         const { data: link } = await supabase
           .from("affiliate_links")
           .select("id, tracking_code, property_name, landing_page_id, partners(name)")
@@ -101,31 +109,18 @@ export default function LandingPageView() {
           .eq("is_active", true)
           .maybeSingle();
 
-        if (!link || !(link as { landing_page_id: string | null }).landing_page_id) {
-          setNotFound(true);
+        if (link && (link as { landing_page_id: string | null }).landing_page_id) {
+          setLinkInfo(link as LinkInfo);
+          await loadPage({ id: (link as { landing_page_id: string }).landing_page_id });
           return;
         }
-        setLinkInfo(link as LinkInfo);
-        await loadPage((link as { landing_page_id: string }).landing_page_id);
+
+        // Otherwise treat as slug
+        await loadPage({ slug: id });
         return;
       }
 
-      await loadPage(id);
-    };
-
-    const loadPage = async (pageId: string) => {
-      const { data } = await supabase
-        .from("landing_pages")
-        .select("*")
-        .eq("id", pageId)
-        .eq("is_published", true)
-        .maybeSingle();
-
-      if (!data) {
-        setNotFound(true);
-        return;
-      }
-      setPage(data as LandingPage);
+      await loadPage({ id });
     };
 
     load();
