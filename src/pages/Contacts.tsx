@@ -88,6 +88,7 @@ export default function Contacts() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Contact | null>(null);
+  const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [dealOpen, setDealOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
