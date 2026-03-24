@@ -15,6 +15,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -22,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2 } from "lucide-react";
+import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {
@@ -49,6 +59,7 @@ export default function Partners() {
   const [editing, setEditing] = useState<Partner | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deletePartner, setDeletePartner] = useState<Partner | null>(null);
   const isAdmin = role === "admin";
 
   const fetchPartners = async () => {
@@ -125,6 +136,18 @@ export default function Partners() {
   const toggleActive = async (p: Partner) => {
     await supabase.from("partners").update({ is_active: !p.is_active }).eq("id", p.id);
     fetchPartners();
+  };
+
+  const handleDeletePartner = async () => {
+    if (!deletePartner) return;
+    const { error } = await supabase.from("partners").delete().eq("id", deletePartner.id);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Partner usunięty" });
+      fetchPartners();
+    }
+    setDeletePartner(null);
   };
 
   return (
@@ -210,6 +233,15 @@ export default function Partners() {
                               >
                                 {p.is_active ? "Deaktywuj" : "Aktywuj"}
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeletePartner(p)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title="Usuń partnera"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </TableCell>
                         )}
@@ -258,6 +290,27 @@ export default function Partners() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Delete partner confirmation */}
+      <AlertDialog open={!!deletePartner} onOpenChange={(o) => !o && setDeletePartner(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń partnera</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć partnera <strong>{deletePartner?.name}</strong>? Operacja jest nieodwracalna.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeletePartner}
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

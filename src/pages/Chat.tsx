@@ -103,12 +103,27 @@ export default function Chat() {
 
     if (!chans) return;
 
-    // Load profiles for DM name resolution
+    // Load profiles for ALL users (admins, employees, agents)
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, full_name, email");
 
-    const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+    // Also load partner names for agent accounts to show better names
+    const { data: partnerAgents } = await supabase
+      .from("partners")
+      .select("agent_user_id, name")
+      .not("agent_user_id", "is", null);
+
+    const agentNameMap = new Map(
+      (partnerAgents ?? []).map((p) => [p.agent_user_id, p.name])
+    );
+
+    const enrichedProfiles = (profiles ?? []).map((p) => ({
+      ...p,
+      full_name: agentNameMap.get(p.user_id) ?? p.full_name,
+    }));
+
+    const profileMap = new Map(enrichedProfiles.map((p) => [p.user_id, p]));
 
     const enriched: Channel[] = await Promise.all(
       chans.map(async (c) => {
@@ -131,7 +146,7 @@ export default function Chat() {
 
     setChannels(enriched);
     setAllUsers(
-      (profiles ?? []).filter((p) => p.user_id !== user.id) as UserProfile[]
+      enrichedProfiles.filter((p) => p.user_id !== user.id) as UserProfile[]
     );
   }, [user]);
 

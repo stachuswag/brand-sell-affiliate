@@ -14,6 +14,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+// alert-dialog used below for delete confirmation
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCheck, TrendingUp, Filter, Phone, CheckCircle } from "lucide-react";
+import { UserCheck, TrendingUp, Filter, Phone, CheckCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -78,6 +89,7 @@ export default function Contacts() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Contact | null>(null);
+  const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [dealOpen, setDealOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -182,6 +194,22 @@ export default function Contacts() {
     setDealOpen(false);
     fetchContacts();
     fetchTransactions();
+  };
+
+  const handleDeleteContact = async () => {
+    if (!deleteContact) return;
+    // Delete linked transactions first
+    await supabase.from("transactions").delete().eq("contact_id", deleteContact.id);
+    const { error } = await supabase.from("contacts").delete().eq("id", deleteContact.id);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Kontakt usunięty" });
+      fetchContacts();
+      fetchTransactions();
+    }
+    setDeleteContact(null);
+    setDetailOpen(false);
   };
 
   const filtered = contacts.filter((c) => {
@@ -323,6 +351,16 @@ export default function Contacts() {
                                   )}
                                 </Button>
                               )}
+                              {/* Delete button */}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => { e.stopPropagation(); setDeleteContact(c); }}
+                                title="Usuń kontakt"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -510,6 +548,27 @@ export default function Contacts() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Delete contact confirmation */}
+      <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń kontakt</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć kontakt <strong>{deleteContact?.full_name}</strong>? Ta operacja jest nieodwracalna i usunie też powiązane transakcje.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteContact}
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
