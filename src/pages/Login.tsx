@@ -89,10 +89,7 @@ export default function Login() {
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="flex flex-col items-center mb-10">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
-            <Building2 className="h-8 w-8" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Brand and Sell</h1>
+          <img src={logo} alt="Brand and Sell" className="h-24 w-auto object-contain mb-4" />
           <p className="text-sm text-muted-foreground mt-1">
             {step === "admin-login" ? "Panel Administratora" : "Panel Agenta"}
           </p>
