@@ -65,7 +65,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {(role === "agent" ? agentNavItems : adminNavItems).map(({ href, label, icon: Icon }) => {
           const active = location.pathname === href;
           return (
             <Link
