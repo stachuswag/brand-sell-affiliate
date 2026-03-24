@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,6 +75,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export default function LandingPageView() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   const [page, setPage] = useState<LandingPage | null>(null);
@@ -120,11 +121,23 @@ export default function LandingPageView() {
         return;
       }
 
+      // UUID — load page, then check ?ref= query param to get affiliate link info
       await loadPage({ id });
+
+      const refCode = searchParams.get("ref");
+      if (refCode) {
+        const { data: link } = await supabase
+          .from("affiliate_links")
+          .select("id, tracking_code, property_name, partners(name)")
+          .eq("tracking_code", refCode)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (link) setLinkInfo(link as LinkInfo);
+      }
     };
 
     load();
-  }, [id]);
+  }, [id, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
