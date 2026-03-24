@@ -90,18 +90,21 @@ export type Database = {
       chat_channel_members: {
         Row: {
           channel_id: string
+          closed_at: string | null
           id: string
           joined_at: string
           user_id: string
         }
         Insert: {
           channel_id: string
+          closed_at?: string | null
           id?: string
           joined_at?: string
           user_id: string
         }
         Update: {
           channel_id?: string
+          closed_at?: string | null
           id?: string
           joined_at?: string
           user_id?: string

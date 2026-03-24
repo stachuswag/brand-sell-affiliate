@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Hash, MessageSquare, Plus, Users, Send, Paperclip, X,
-  Download, FileText, Image as ImageIcon, ChevronRight, Search, UserPlus, Loader2
+  Download, FileText, Image as ImageIcon, ChevronRight, Search, UserPlus, Loader2, EyeOff
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -22,8 +22,11 @@ interface Channel {
   type: "general" | "direct" | "group";
   created_by: string | null;
   updated_at: string;
-  other_user_name?: string; // for DMs
+  other_user_name?: string;
   unread?: number;
+  // membership info
+  closed_at?: string | null;
+  membership_id?: string;
 }
 
 interface Message {
@@ -92,7 +95,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ---- Load all users (independent of channels) ----
+  // ---- Load all users ----
   const loadAllUsers = useCallback(async () => {
     if (!user) return;
     const [{ data: profiles }, { data: partnerAgents }] = await Promise.all([
@@ -139,8 +142,26 @@ export default function Chat() {
     const enrichedProfiles = await loadAllUsers() ?? [];
     const profileMap = new Map(enrichedProfiles.map((p) => [p.user_id, p]));
 
+    // Get user's memberships with closed_at info
+    const { data: memberships } = await supabase
+      .from("chat_channel_members")
+      .select("channel_id, closed_at, id")
+      .eq("user_id", user.id);
+
+    const membershipMap = new Map(
+      (memberships ?? []).map((m) => [m.channel_id, { closed_at: m.closed_at, id: m.id }])
+    );
+
     const enriched: Channel[] = await Promise.all(
       chans.map(async (c) => {
+        const membership = membershipMap.get(c.id);
+        const base = {
+          ...c,
+          type: c.type as "general" | "direct" | "group",
+          closed_at: membership?.closed_at ?? null,
+          membership_id: membership?.id,
+        };
+
         if (c.type === "direct") {
           const { data: members } = await supabase
             .from("chat_channel_members")
@@ -149,22 +170,50 @@ export default function Chat() {
           const otherId = members?.find((m) => m.user_id !== user.id)?.user_id;
           const profile = otherId ? profileMap.get(otherId) : null;
           return {
-            ...c,
-            type: c.type as "general" | "direct" | "group",
+            ...base,
             other_user_name: profile?.full_name ?? profile?.email ?? "Nieznany",
           };
         }
-        return { ...c, type: c.type as "general" | "direct" | "group" };
+        return base;
       })
     );
 
-    setChannels(enriched);
+    // Filter: show channel if:
+    // - general (always show)
+    // - not closed (closed_at is null) 
+    // - closed but updated_at > closed_at (new message came in after closing)
+    const visible = enriched.filter((ch) => {
+      if (ch.type === "general") return true;
+      if (!ch.closed_at) return true; // not closed
+      // reopen if channel has new activity after closing
+      return new Date(ch.updated_at) > new Date(ch.closed_at);
+    });
+
+    setChannels(visible);
+    return visible;
   }, [user, loadAllUsers]);
 
   useEffect(() => {
     loadAllUsers();
     loadChannels();
   }, [loadAllUsers, loadChannels]);
+
+  // ---- Realtime: watch for new messages to reopen closed channels ----
+  useEffect(() => {
+    if (!user) return;
+    const sub = supabase
+      .channel("global-messages-watch")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        () => {
+          // Reload channels so closed ones reappear when new msg arrives
+          loadChannels();
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(sub); };
+  }, [user, loadChannels]);
 
   // ---- Load messages for active channel ----
   const loadMessages = useCallback(async (channelId: string) => {
@@ -176,7 +225,6 @@ export default function Chat() {
 
     if (!data) return;
 
-    // Enrich with sender names
     const senderIds = [...new Set(data.map((m) => m.sender_id))];
     const { data: profiles } = await supabase
       .from("profiles")
@@ -203,6 +251,7 @@ export default function Chat() {
       .eq("channel_id", channelId);
     if (!members) return;
     const ids = members.map((m) => m.user_id);
+    if (ids.length === 0) return;
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, full_name, email")
@@ -216,7 +265,7 @@ export default function Chat() {
     loadChannelMembers(activeChannel.id);
   }, [activeChannel, loadMessages, loadChannelMembers]);
 
-  // ---- Realtime subscription ----
+  // ---- Realtime subscription for active channel ----
   useEffect(() => {
     if (!activeChannel) return;
 
@@ -251,12 +300,32 @@ export default function Chat() {
   // ---- Select channel (auto-join general) ----
   const selectChannel = async (ch: Channel) => {
     setActiveChannel(ch);
-    // Ensure user is a member (for general channels)
     if (ch.type === "general") {
       await supabase
         .from("chat_channel_members")
         .upsert({ channel_id: ch.id, user_id: user!.id }, { onConflict: "channel_id,user_id" });
     }
+  };
+
+  // ---- Close / archive a conversation ----
+  const closeConversation = async (ch: Channel, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+
+    await supabase
+      .from("chat_channel_members")
+      .update({ closed_at: new Date().toISOString() })
+      .eq("channel_id", ch.id)
+      .eq("user_id", user.id);
+
+    // If this was the active channel, deselect it
+    if (activeChannel?.id === ch.id) {
+      setActiveChannel(null);
+      setMessages([]);
+    }
+
+    toast({ title: "Rozmowa ukryta", description: "Pojawi się ponownie gdy przyjdzie nowa wiadomość." });
+    loadChannels();
   };
 
   // ---- Send message ----
@@ -303,7 +372,6 @@ export default function Chat() {
       toast({ title: "Błąd", description: error.message, variant: "destructive" });
     } else {
       setInput("");
-      // Update channel timestamp
       await supabase.from("chat_channels").update({ updated_at: new Date().toISOString() }).eq("id", activeChannel.id);
       loadChannels();
     }
@@ -328,11 +396,6 @@ export default function Chat() {
 
   // ---- Create DM ----
   const createDM = async (targetUserId: string) => {
-    // Check if DM already exists
-    const existing = channels.find(
-      (c) => c.type === "direct" && c.other_user_name !== undefined
-    );
-    // Better: look in DB
     const { data: myMemberships } = await supabase
       .from("chat_channel_members")
       .select("channel_id")
@@ -347,16 +410,34 @@ export default function Chat() {
         .in("channel_id", myIds);
 
       for (const { channel_id } of shared ?? []) {
-        const ch = channels.find((c) => c.id === channel_id && c.type === "direct");
-        if (ch) {
+        // Check if it's a direct channel
+        const { data: chanData } = await supabase
+          .from("chat_channels")
+          .select("*")
+          .eq("id", channel_id)
+          .eq("type", "direct")
+          .maybeSingle();
+        if (chanData) {
+          // Reopen if it was closed
+          await supabase
+            .from("chat_channel_members")
+            .update({ closed_at: null })
+            .eq("channel_id", channel_id)
+            .eq("user_id", user!.id);
           setDmOpen(false);
-          selectChannel(ch);
+          await loadChannels();
+          const profile = allUsers.find((u) => u.user_id === targetUserId);
+          selectChannel({
+            ...chanData,
+            type: "direct",
+            other_user_name: profile?.full_name ?? profile?.email ?? "Nieznany",
+            closed_at: null,
+          });
           return;
         }
       }
     }
 
-    // Create new DM channel
     const { data: newChan, error } = await supabase
       .from("chat_channels")
       .insert({ type: "direct", created_by: user!.id })
@@ -371,12 +452,12 @@ export default function Chat() {
 
     setDmOpen(false);
     await loadChannels();
-    // Select the new channel
     const profile = allUsers.find((u) => u.user_id === targetUserId);
     selectChannel({
       ...newChan,
       type: "direct",
       other_user_name: profile?.full_name ?? profile?.email ?? "Nieznany",
+      closed_at: null,
     });
   };
 
@@ -400,7 +481,7 @@ export default function Chat() {
     setGroupName("");
     setGroupSelected([]);
     await loadChannels();
-    selectChannel({ ...newChan, type: "group" });
+    selectChannel({ ...newChan, type: "group", closed_at: null });
   };
 
   const channelDisplayName = (ch: Channel) => {
@@ -410,6 +491,39 @@ export default function Chat() {
 
   const filteredDMUsers = allUsers.filter((u) =>
     (u.full_name ?? u.email ?? "").toLowerCase().includes(dmSearch.toLowerCase())
+  );
+
+  // Sidebar channel button with close button
+  const ChannelButton = ({ ch }: { ch: Channel }) => (
+    <div className="group/item relative">
+      <button
+        onClick={() => selectChannel(ch)}
+        className={cn(
+          "w-full flex items-center gap-2 rounded-lg px-2 py-2 pr-8 text-sm text-left transition-colors",
+          activeChannel?.id === ch.id
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-foreground hover:bg-muted"
+        )}
+      >
+        {ch.type === "general" && <Hash className="h-4 w-4 flex-shrink-0" />}
+        {ch.type === "group" && <Users className="h-4 w-4 flex-shrink-0" />}
+        {ch.type === "direct" && (
+          <div className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
+            {(ch.other_user_name ?? "?").charAt(0).toUpperCase()}
+          </div>
+        )}
+        <span className="truncate">{channelDisplayName(ch)}</span>
+      </button>
+      {ch.type !== "general" && (
+        <button
+          onClick={(e) => closeConversation(ch, e)}
+          title="Ukryj rozmowę"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+        >
+          <EyeOff className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
   );
 
   return (
@@ -423,38 +537,11 @@ export default function Chat() {
           </div>
 
           <div className="flex-1 overflow-y-auto py-2">
-            {/* General */}
+            {/* Channels */}
             <div className="px-3 py-1">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-1">Kanały</p>
-              {channels.filter((c) => c.type === "general").map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => selectChannel(ch)}
-                  className={cn(
-                    "w-full flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-left transition-colors",
-                    activeChannel?.id === ch.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-foreground hover:bg-muted"
-                  )}
-                >
-                  <Hash className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{ch.name}</span>
-                </button>
-              ))}
-              {channels.filter((c) => c.type === "group").map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => selectChannel(ch)}
-                  className={cn(
-                    "w-full flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-left transition-colors",
-                    activeChannel?.id === ch.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-foreground hover:bg-muted"
-                  )}
-                >
-                  <Users className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{ch.name}</span>
-                </button>
+              {channels.filter((c) => c.type === "general" || c.type === "group").map((ch) => (
+                <ChannelButton key={ch.id} ch={ch} />
               ))}
               <button
                 onClick={() => setGroupOpen(true)}
@@ -468,21 +555,7 @@ export default function Chat() {
             <div className="px-3 py-1 mt-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-1">Wiadomości prywatne</p>
               {channels.filter((c) => c.type === "direct").map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => selectChannel(ch)}
-                  className={cn(
-                    "w-full flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-left transition-colors",
-                    activeChannel?.id === ch.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-foreground hover:bg-muted"
-                  )}
-                >
-                  <div className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
-                    {(ch.other_user_name ?? "?").charAt(0).toUpperCase()}
-                  </div>
-                  <span className="truncate">{ch.other_user_name}</span>
-                </button>
+                <ChannelButton key={ch.id} ch={ch} />
               ))}
               <button
                 onClick={() => setDmOpen(true)}
@@ -519,24 +592,37 @@ export default function Chat() {
                   </p>
                 )}
               </div>
-              {activeChannel.type !== "direct" && (
-                <div className="ml-auto flex -space-x-1">
-                  {channelMembers.slice(0, 4).map((m) => (
-                    <div
-                      key={m.user_id}
-                      title={m.full_name ?? m.email ?? "Nieznany"}
-                      className="h-6 w-6 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center border-2 border-card"
-                    >
-                      {(m.full_name ?? m.email ?? "?").charAt(0).toUpperCase()}
-                    </div>
-                  ))}
-                  {channelMembers.length > 4 && (
-                    <div className="h-6 w-6 rounded-full bg-muted text-muted-foreground text-[10px] font-bold flex items-center justify-center border-2 border-card">
-                      +{channelMembers.length - 4}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="ml-auto flex items-center gap-2">
+                {activeChannel.type !== "direct" && (
+                  <div className="flex -space-x-1">
+                    {channelMembers.slice(0, 4).map((m) => (
+                      <div
+                        key={m.user_id}
+                        title={m.full_name ?? m.email ?? "Nieznany"}
+                        className="h-6 w-6 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center border-2 border-card"
+                      >
+                        {(m.full_name ?? m.email ?? "?").charAt(0).toUpperCase()}
+                      </div>
+                    ))}
+                    {channelMembers.length > 4 && (
+                      <div className="h-6 w-6 rounded-full bg-muted text-muted-foreground text-[10px] font-bold flex items-center justify-center border-2 border-card">
+                        +{channelMembers.length - 4}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {activeChannel.type !== "general" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground gap-1.5 text-xs h-8"
+                    onClick={(e) => closeConversation(activeChannel, e)}
+                  >
+                    <EyeOff className="h-3.5 w-3.5" />
+                    Ukryj
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Drag overlay */}
