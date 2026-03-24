@@ -321,6 +321,7 @@ export type Database = {
       }
       partners: {
         Row: {
+          agent_user_id: string | null
           contact_person: string | null
           created_at: string
           created_by: string | null
@@ -333,6 +334,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agent_user_id?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agent_user_id?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
@@ -456,22 +459,33 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          partner_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          partner_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          partner_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -488,7 +502,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "employee"
+      app_role: "admin" | "employee" | "agent"
       contact_status: "new" | "in_progress" | "deal_closed" | "no_deal"
       link_type: "partner" | "property"
     }
@@ -618,7 +632,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "employee"],
+      app_role: ["admin", "employee", "agent"],
       contact_status: ["new", "in_progress", "deal_closed", "no_deal"],
       link_type: ["partner", "property"],
     },
