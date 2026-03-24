@@ -88,6 +88,7 @@ const emptyForm = {
   property_address: "",
   destination_url: "",
   expires_at: "",
+  landing_page_id: "",
 };
 
 export default function Links() {
