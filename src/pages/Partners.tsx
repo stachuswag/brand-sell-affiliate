@@ -138,6 +138,18 @@ export default function Partners() {
     fetchPartners();
   };
 
+  const handleDeletePartner = async () => {
+    if (!deletePartner) return;
+    const { error } = await supabase.from("partners").delete().eq("id", deletePartner.id);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Partner usunięty" });
+      fetchPartners();
+    }
+    setDeletePartner(null);
+  };
+
   return (
     <AppShell>
       <div className="p-6 space-y-6">

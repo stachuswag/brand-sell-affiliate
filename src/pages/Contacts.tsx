@@ -548,6 +548,27 @@ export default function Contacts() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Delete contact confirmation */}
+      <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń kontakt</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć kontakt <strong>{deleteContact?.full_name}</strong>? Ta operacja jest nieodwracalna i usunie też powiązane transakcje.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteContact}
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
