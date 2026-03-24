@@ -399,6 +399,27 @@ export default function Links() {
               )}
 
               <div className="space-y-2">
+                <Label>Landing Page (opcjonalnie)</Label>
+                <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2 mb-2">
+                  <span className="h-2 w-2 rounded-full bg-accent flex-shrink-0 mt-1.5" />
+                  <div className="text-xs text-foreground">
+                    <span className="font-medium">Wybierz landing page</span>
+                    <span className="text-muted-foreground"> — klient zobaczy dedykowaną stronę z galerią i formularzem</span>
+                  </div>
+                </div>
+                <Select value={form.landing_page_id || "none"} onValueChange={(v) => setForm({ ...form, landing_page_id: v === "none" ? "" : v, destination_url: v !== "none" ? "" : form.destination_url })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Bez landing page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Bez landing page —</SelectItem>
+                    {landingPages.map((lp) => (
+                      <SelectItem key={lp.id} value={lp.id}>{lp.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Przekierowanie po kliknięciu linku</Label>
                 <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2">
                   <span className="h-2 w-2 rounded-full bg-success flex-shrink-0 mt-1.5" />
@@ -407,10 +428,12 @@ export default function Links() {
                     <span className="text-muted-foreground"> — klient wypełnia formularz, Ty dostajesz powiadomienie</span>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie):</p>
-                  <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt (opcjonalnie)" />
-                </div>
+                {!form.landing_page_id && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie):</p>
+                    <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt (opcjonalnie)" />
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Data ważności (opcjonalnie)</Label>
