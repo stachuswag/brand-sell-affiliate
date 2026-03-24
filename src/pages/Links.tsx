@@ -45,6 +45,11 @@ interface Offer {
   address: string | null;
 }
 
+interface LandingPage {
+  id: string;
+  title: string;
+}
+
 interface AffiliateLink {
   id: string;
   partner_id: string;
@@ -57,6 +62,7 @@ interface AffiliateLink {
   expires_at: string | null;
   created_at: string;
   offer_id: string | null;
+  landing_page_id: string | null;
   partners: { name: string } | null;
   click_count?: number;
   contact_count?: number;
