@@ -151,6 +151,32 @@ export default function Login() {
           </div>
         )}
 
+        {/* Admin login button — always shown on select step */}
+        {step === "select" && (
+          <div className="mt-8 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-3 text-muted-foreground tracking-wider">lub</span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setEmail("");
+                setPassword("");
+                setShowPass(false);
+                setStep("admin-login");
+              }}
+              className="mt-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-lg px-4 py-2.5 hover:bg-muted/50"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Zaloguj się jako Administrator
+            </button>
+          </div>
+        )}
+
         {/* Step: no account */}
         {step === "no-account" && selectedPartner && (
           <div className="max-w-md mx-auto">
