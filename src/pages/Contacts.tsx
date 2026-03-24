@@ -195,6 +195,22 @@ export default function Contacts() {
     fetchTransactions();
   };
 
+  const handleDeleteContact = async () => {
+    if (!deleteContact) return;
+    // Delete linked transactions first
+    await supabase.from("transactions").delete().eq("contact_id", deleteContact.id);
+    const { error } = await supabase.from("contacts").delete().eq("id", deleteContact.id);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Kontakt usunięty" });
+      fetchContacts();
+      fetchTransactions();
+    }
+    setDeleteContact(null);
+    setDetailOpen(false);
+  };
+
   const filtered = contacts.filter((c) => {
     const statusOk = statusFilter === "all" || c.status === statusFilter;
     const partnerOk = partnerFilter === "all" || c.affiliate_links?.partners?.name === partners.find(p => p.id === partnerFilter)?.name;
