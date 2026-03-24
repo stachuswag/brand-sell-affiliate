@@ -94,7 +94,7 @@ export default function SendFiles() {
   }
 
   function removeFile(index: number) {
-    setFiles((prev) => prev.filter((_, i) => i !== index);
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleDrop(e: React.DragEvent) {
