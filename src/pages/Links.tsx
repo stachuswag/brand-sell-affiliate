@@ -97,6 +97,7 @@ export default function Links() {
   const [links, setLinks] = useState<AffiliateLink[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AffiliateLink | null>(null);
