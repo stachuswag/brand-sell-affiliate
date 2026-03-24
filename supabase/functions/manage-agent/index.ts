@@ -18,10 +18,11 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { action, partner_id, partner_name, email, password } = await req.json();
+    // Read body once
+    const body = await req.json();
+    const { action, partner_id, partner_name, email, password, user_id } = body;
 
     if (action === "create") {
-      // Create auth user
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -55,8 +56,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset_password") {
-      const { user_id } = await req.json().catch(() => ({ user_id: null }));
-      // reset_password uses email + password from body
       const { error } = await supabaseAdmin.auth.admin.updateUserById(
         user_id ?? "",
         { password }
@@ -69,9 +68,15 @@ Deno.serve(async (req) => {
     }
 
     if (action === "delete") {
-      const { user_id } = await req.json().catch(() => ({ user_id: null }));
       const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id ?? "");
       if (error) throw error;
+
+      // Unlink partner
+      await supabaseAdmin
+        .from("partners")
+        .update({ agent_user_id: null })
+        .eq("agent_user_id", user_id);
+
       return new Response(
         JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
