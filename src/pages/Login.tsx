@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Eye, EyeOff, ArrowLeft, UserX, Lock } from "lucide-react";
+import { Building2, Eye, EyeOff, ArrowLeft, UserX, Lock, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {
@@ -15,7 +15,7 @@ interface Partner {
   agent_user_id: string | null;
 }
 
-type Step = "select" | "login" | "no-account";
+type Step = "select" | "login" | "no-account" | "admin-login";
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -73,7 +73,13 @@ export default function Login() {
         variant: "destructive",
       });
     } else {
-      setTimeout(() => navigate("/agent"), 300);
+      setTimeout(() => {
+        if (step === "admin-login") {
+          navigate("/dashboard");
+        } else {
+          navigate("/agent");
+        }
+      }, 300);
     }
   };
 
@@ -86,7 +92,9 @@ export default function Login() {
             <Building2 className="h-8 w-8" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">Brand and Sell</h1>
-          <p className="text-sm text-muted-foreground mt-1">Panel Agenta</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {step === "admin-login" ? "Panel Administratora" : "Panel Agenta"}
+          </p>
         </div>
 
         {/* Step: select partner */}
@@ -140,6 +148,32 @@ export default function Login() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Admin login button — always shown on select step */}
+        {step === "select" && (
+          <div className="mt-8 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-3 text-muted-foreground tracking-wider">lub</span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setEmail("");
+                setPassword("");
+                setShowPass(false);
+                setStep("admin-login");
+              }}
+              className="mt-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-lg px-4 py-2.5 hover:bg-muted/50"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Zaloguj się jako Administrator
+            </button>
           </div>
         )}
 
@@ -215,6 +249,70 @@ export default function Login() {
                   <div className="relative">
                     <Input
                       id="password"
+                      type={showPass ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Logowanie..." : "Zaloguj się"}
+                </Button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Step: admin login */}
+        {step === "admin-login" && (
+          <div className="max-w-md mx-auto">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" /> Wróć
+            </button>
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+              {/* Admin header */}
+              <div className="bg-primary/5 border-b border-border px-6 py-5 flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Logowanie do</p>
+                  <p className="font-bold text-foreground text-lg leading-tight">Panelu Głównego</p>
+                </div>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-email">Email</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    placeholder="admin@brandsell.pl"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">Hasło</Label>
+                  <div className="relative">
+                    <Input
+                      id="admin-password"
                       type={showPass ? "text" : "password"}
                       placeholder="••••••••"
                       value={password}
