@@ -380,7 +380,7 @@ export default function SendFiles() {
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Ostatnio wysłano do:</p>
                 <div className="flex flex-wrap gap-1">
                   {sentPartners.map((name) => (
-                    <Badge key={name} variant="secondary" className="text-xs gap-1 text-green-600">
+                    <Badge key={name} variant="secondary" className="text-xs gap-1 text-success">
                       <CheckCircle2 className="h-3 w-3" />
                       {name}
                     </Badge>
