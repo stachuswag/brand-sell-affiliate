@@ -147,6 +147,7 @@ export default function Links() {
       property_address: l.property_address ?? "",
       destination_url: l.destination_url ?? "",
       expires_at: l.expires_at ? l.expires_at.split("T")[0] : "",
+      landing_page_id: l.landing_page_id ?? "",
     });
     setOpen(true);
   };
