@@ -51,6 +51,7 @@ import { pl } from "date-fns/locale";
 interface LandingPage {
   id: string;
   title: string;
+  slug: string | null;
   description: string | null;
   ai_prompt: string | null;
   generated_content: Record<string, unknown> | null;
@@ -220,7 +221,7 @@ export default function LandingPages() {
     fetchPages();
   };
 
-  const previewUrl = (id: string) => `${window.location.origin}/lp/${id}`;
+  const previewUrl = (p: LandingPage) => `${window.location.origin}/lp/${p.slug ?? p.id}`;
 
   return (
     <AppShell>
@@ -255,6 +256,7 @@ export default function LandingPages() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tytuł</TableHead>
+                      <TableHead>URL (slug)</TableHead>
                       <TableHead>Zdjęcia</TableHead>
                       <TableHead>AI</TableHead>
                       <TableHead className="text-center">Status</TableHead>
@@ -266,6 +268,11 @@ export default function LandingPages() {
                     {pages.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.title}</TableCell>
+                        <TableCell>
+                          <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                            /lp/{p.slug ?? p.id}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {p.images?.length ?? 0} zdjęć
                         </TableCell>
@@ -299,7 +306,7 @@ export default function LandingPages() {
                               size="sm"
                               className="h-8 w-8 p-0"
                               title="Podgląd"
-                              onClick={() => window.open(previewUrl(p.id), "_blank")}
+                              onClick={() => window.open(previewUrl(p), "_blank")}
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
@@ -309,7 +316,7 @@ export default function LandingPages() {
                               className="h-8 w-8 p-0"
                               title="Kopiuj link"
                               onClick={() => {
-                                navigator.clipboard.writeText(previewUrl(p.id));
+                                navigator.clipboard.writeText(previewUrl(p));
                                 toast({ title: "Link skopiowany!" });
                               }}
                             >
