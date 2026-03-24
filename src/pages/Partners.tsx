@@ -290,6 +290,27 @@ export default function Partners() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Delete partner confirmation */}
+      <AlertDialog open={!!deletePartner} onOpenChange={(o) => !o && setDeletePartner(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń partnera</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć partnera <strong>{deletePartner?.name}</strong>? Operacja jest nieodwracalna.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeletePartner}
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
