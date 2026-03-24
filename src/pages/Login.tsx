@@ -272,6 +272,70 @@ export default function Login() {
             </div>
           </div>
         )}
+
+        {/* Step: admin login */}
+        {step === "admin-login" && (
+          <div className="max-w-md mx-auto">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" /> Wróć
+            </button>
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+              {/* Admin header */}
+              <div className="bg-primary/5 border-b border-border px-6 py-5 flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Logowanie do</p>
+                  <p className="font-bold text-foreground text-lg leading-tight">Panelu Głównego</p>
+                </div>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-email">Email</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    placeholder="admin@brandsell.pl"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">Hasło</Label>
+                  <div className="relative">
+                    <Input
+                      id="admin-password"
+                      type={showPass ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Logowanie..." : "Zaloguj się"}
+                </Button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
