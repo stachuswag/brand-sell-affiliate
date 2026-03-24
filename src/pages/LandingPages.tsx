@@ -177,14 +177,16 @@ export default function LandingPages() {
     setSaving(true);
 
     const generatedContent =
-      (window as unknown as Record<string, unknown>).__lpContent as Record<string, unknown> | null ?? editing?.generated_content ?? null;
+      (window as unknown as Record<string, unknown>).__lpContent ?? editing?.generated_content ?? null;
 
     const payload = {
       title: form.title,
       description: form.description || null,
       ai_prompt: form.ai_prompt || null,
-      generated_content: generatedContent,
-      images: uploadedImages,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      generated_content: generatedContent as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      images: uploadedImages as any,
       hero_image_url: uploadedImages[0] ?? null,
     };
 
@@ -193,7 +195,7 @@ export default function LandingPages() {
       if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
       else toast({ title: "Landing page zaktualizowany" });
     } else {
-      const { error } = await supabase.from("landing_pages").insert(payload);
+      const { error } = await supabase.from("landing_pages").insert([payload]);
       if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
       else toast({ title: "Landing page utworzony!" });
     }
