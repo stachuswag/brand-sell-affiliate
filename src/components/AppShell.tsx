@@ -200,7 +200,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 ))
               )}
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          </div>
         </header>
 
         {/* Page content */}
