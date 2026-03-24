@@ -126,10 +126,16 @@ export default function Links() {
     if (data) setOffers(data as Offer[]);
   };
 
+  const fetchLandingPages = async () => {
+    const { data } = await supabase.from("landing_pages").select("id, title").eq("is_published", true).order("title");
+    if (data) setLandingPages(data as LandingPage[]);
+  };
+
   useEffect(() => {
     fetchLinks();
     fetchPartners();
     fetchOffers();
+    fetchLandingPages();
   }, []);
 
   const openCreate = () => {
