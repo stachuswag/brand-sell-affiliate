@@ -134,7 +134,7 @@ export default function Login() {
                       </div>
                     </div>
                     {p.agent_user_id && (
-                      <div className="absolute top-3 right-3 h-2 w-2 rounded-full bg-green-500" />
+                      <div className="absolute top-3 right-3 h-2 w-2 rounded-full bg-success" />
                     )}
                   </button>
                 ))}
