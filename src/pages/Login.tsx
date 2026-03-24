@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ArrowLeft, UserX, Lock, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, UserX, Lock, ShieldCheck, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import logo from "@/assets/logo.webp";
 import { useToast } from "@/hooks/use-toast";
 
