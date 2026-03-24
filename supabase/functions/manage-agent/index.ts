@@ -23,6 +23,9 @@ Deno.serve(async (req) => {
     const { action, partner_id, partner_name, email, password, user_id } = body;
 
     if (action === "create") {
+      let userId: string;
+
+      // Try to create the user; if email already exists, find the existing user
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -30,12 +33,24 @@ Deno.serve(async (req) => {
         user_metadata: { full_name: partner_name },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // If user already exists, look them up by email
+        if (authError.message?.includes("already been registered") || authError.message?.includes("already exists")) {
+          const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+          if (listError) throw listError;
+          const existing = listData.users.find((u) => u.email === email);
+          if (!existing) throw new Error("Użytkownik z tym emailem już istnieje, ale nie można go znaleźć.");
+          userId = existing.id;
+          // Update password to the new one
+          await supabaseAdmin.auth.admin.updateUserById(userId, { password });
+        } else {
+          throw authError;
+        }
+      } else {
+        userId = authData.user.id;
+      }
 
-      const userId = authData.user.id;
-
-      // Insert or update user_roles as agent linked to partner
-      // First delete any existing role for this user, then insert fresh
+      // Clean up any existing role for this user and assign agent role
       await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
