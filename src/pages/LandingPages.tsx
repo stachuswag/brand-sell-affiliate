@@ -221,7 +221,7 @@ export default function LandingPages() {
     fetchPages();
   };
 
-  const previewUrl = (id: string) => `${window.location.origin}/lp/${id}`;
+  const previewUrl = (p: LandingPage) => `${window.location.origin}/lp/${p.slug ?? p.id}`;
 
   return (
     <AppShell>
