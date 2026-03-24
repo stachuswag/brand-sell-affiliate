@@ -34,10 +34,12 @@ Deno.serve(async (req) => {
 
       const userId = authData.user.id;
 
-      // Upsert user_roles as agent linked to partner
+      // Insert or update user_roles as agent linked to partner
+      // First delete any existing role for this user, then insert fresh
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
-        .upsert({ user_id: userId, role: "agent", partner_id }, { onConflict: "user_id" });
+        .insert({ user_id: userId, role: "agent", partner_id });
 
       if (roleError) throw roleError;
 
