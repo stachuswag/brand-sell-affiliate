@@ -14,6 +14,8 @@ import Links from "./pages/Links";
 import Contacts from "./pages/Contacts";
 import Reports from "./pages/Reports";
 import TrackingRedirect from "./pages/TrackingRedirect";
+import LandingPages from "./pages/LandingPages";
+import LandingPageView from "./pages/LandingPageView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/c/:code" element={<TrackingRedirect />} />
+            <Route path="/lp/:id" element={<LandingPageView />} />
 
             {/* Protected routes */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -36,6 +39,7 @@ const App = () => (
             <Route path="/partners" element={<ProtectedRoute><Partners /></ProtectedRoute>} />
             <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
             <Route path="/links" element={<ProtectedRoute><Links /></ProtectedRoute>} />
+            <Route path="/landing-pages" element={<ProtectedRoute><LandingPages /></ProtectedRoute>} />
             <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
 

@@ -25,6 +25,7 @@ import {
   Menu,
   ChevronRight,
   Building2,
+  LayoutTemplate,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
