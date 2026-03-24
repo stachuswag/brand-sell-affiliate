@@ -201,6 +201,7 @@ export default function Links() {
       property_address: form.property_address || null,
       destination_url: form.destination_url || null,
       expires_at: form.expires_at || null,
+      landing_page_id: form.landing_page_id || null,
     };
 
     if (editing) {
