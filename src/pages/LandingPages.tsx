@@ -256,6 +256,7 @@ export default function LandingPages() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tytuł</TableHead>
+                      <TableHead>URL (slug)</TableHead>
                       <TableHead>Zdjęcia</TableHead>
                       <TableHead>AI</TableHead>
                       <TableHead className="text-center">Status</TableHead>
@@ -267,6 +268,11 @@ export default function LandingPages() {
                     {pages.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.title}</TableCell>
+                        <TableCell>
+                          <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                            /lp/{p.slug ?? p.id}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {p.images?.length ?? 0} zdjęć
                         </TableCell>
