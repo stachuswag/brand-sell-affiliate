@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from "@/assets/logo.webp";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -56,14 +57,12 @@ function NavContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-          <Building2 className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-sm font-bold text-sidebar-foreground leading-none">Brand and Sell</p>
-          <p className="text-xs text-sidebar-foreground/60 mt-0.5">System afiliacyjny</p>
-        </div>
+      <div className="flex items-center justify-center px-6 py-4 border-b border-sidebar-border">
+        <img
+          src={logo}
+          alt="Brand and Sell"
+          className="h-14 w-auto object-contain"
+        />
       </div>
 
       {/* Navigation */}
