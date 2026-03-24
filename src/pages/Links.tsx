@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Copy, Check, Link2, Pencil, ExternalLink } from "lucide-react";
+import { Plus, Copy, Check, Link2, Pencil, ExternalLink, LayoutTemplate } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
