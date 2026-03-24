@@ -73,7 +73,13 @@ export default function Login() {
         variant: "destructive",
       });
     } else {
-      setTimeout(() => navigate("/agent"), 300);
+      setTimeout(() => {
+        if (step === "admin-login") {
+          navigate("/dashboard");
+        } else {
+          navigate("/agent");
+        }
+      }, 300);
     }
   };
 
@@ -86,7 +92,9 @@ export default function Login() {
             <Building2 className="h-8 w-8" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">Brand and Sell</h1>
-          <p className="text-sm text-muted-foreground mt-1">Panel Agenta</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {step === "admin-login" ? "Panel Administratora" : "Panel Agenta"}
+          </p>
         </div>
 
         {/* Step: select partner */}
