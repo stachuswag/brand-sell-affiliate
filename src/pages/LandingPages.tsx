@@ -51,6 +51,7 @@ import { pl } from "date-fns/locale";
 interface LandingPage {
   id: string;
   title: string;
+  slug: string | null;
   description: string | null;
   ai_prompt: string | null;
   generated_content: Record<string, unknown> | null;
