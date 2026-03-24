@@ -233,6 +233,15 @@ export default function Partners() {
                               >
                                 {p.is_active ? "Deaktywuj" : "Aktywuj"}
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeletePartner(p)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title="Usuń partnera"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </TableCell>
                         )}
