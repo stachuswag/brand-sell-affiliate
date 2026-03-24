@@ -30,6 +30,8 @@ import {
   LayoutTemplate,
   Send,
   MessageSquare,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
