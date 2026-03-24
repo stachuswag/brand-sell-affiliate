@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Building2,
   LayoutTemplate,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ const navItems = [
   { href: "/landing-pages", label: "Landing Pages", icon: LayoutTemplate },
   { href: "/contacts", label: "Kontakty / Leady", icon: UserCheck },
   { href: "/reports", label: "Raporty", icon: BarChart2 },
+  { href: "/send-files", label: "Wyślij pliki", icon: Send },
 ];
 
 function NavContent({ onClose }: { onClose?: () => void }) {
