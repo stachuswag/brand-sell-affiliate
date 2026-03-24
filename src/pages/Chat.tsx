@@ -92,9 +92,42 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ---- Load all users (independent of channels) ----
+  const loadAllUsers = useCallback(async () => {
+    if (!user) return;
+    const [{ data: profiles }, { data: partnerAgents }] = await Promise.all([
+      supabase.from("profiles").select("user_id, full_name, email"),
+      supabase.from("partners").select("agent_user_id, name").not("agent_user_id", "is", null),
+    ]);
+    const agentNameMap = new Map(
+      (partnerAgents ?? []).map((p) => [p.agent_user_id, p.name])
+    );
+    const enriched = (profiles ?? []).map((p) => ({
+      ...p,
+      full_name: agentNameMap.get(p.user_id) ?? p.full_name,
+    }));
+    setAllUsers(enriched.filter((p) => p.user_id !== user.id) as UserProfile[]);
+    return enriched;
+  }, [user]);
+
   // ---- Load channels ----
   const loadChannels = useCallback(async () => {
     if (!user) return;
+
+    // Ensure "Ogólny" general channel exists
+    const { data: existing } = await supabase
+      .from("chat_channels")
+      .select("id")
+      .eq("type", "general")
+      .limit(1);
+
+    if (!existing || existing.length === 0) {
+      await supabase.from("chat_channels").insert({
+        type: "general",
+        name: "Ogólny",
+        created_by: user.id,
+      });
+    }
 
     const { data: chans } = await supabase
       .from("chat_channels")
@@ -103,26 +136,7 @@ export default function Chat() {
 
     if (!chans) return;
 
-    // Load profiles for ALL users (admins, employees, agents)
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, email");
-
-    // Also load partner names for agent accounts to show better names
-    const { data: partnerAgents } = await supabase
-      .from("partners")
-      .select("agent_user_id, name")
-      .not("agent_user_id", "is", null);
-
-    const agentNameMap = new Map(
-      (partnerAgents ?? []).map((p) => [p.agent_user_id, p.name])
-    );
-
-    const enrichedProfiles = (profiles ?? []).map((p) => ({
-      ...p,
-      full_name: agentNameMap.get(p.user_id) ?? p.full_name,
-    }));
-
+    const enrichedProfiles = await loadAllUsers() ?? [];
     const profileMap = new Map(enrichedProfiles.map((p) => [p.user_id, p]));
 
     const enriched: Channel[] = await Promise.all(
@@ -145,12 +159,12 @@ export default function Chat() {
     );
 
     setChannels(enriched);
-    setAllUsers(
-      enrichedProfiles.filter((p) => p.user_id !== user.id) as UserProfile[]
-    );
-  }, [user]);
+  }, [user, loadAllUsers]);
 
-  useEffect(() => { loadChannels(); }, [loadChannels]);
+  useEffect(() => {
+    loadAllUsers();
+    loadChannels();
+  }, [loadAllUsers, loadChannels]);
 
   // ---- Load messages for active channel ----
   const loadMessages = useCallback(async (channelId: string) => {
