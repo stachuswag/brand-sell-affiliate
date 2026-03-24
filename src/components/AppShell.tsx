@@ -34,6 +34,7 @@ const navItems = [
   { href: "/partners", label: "Partnerzy", icon: Users },
   { href: "/offers", label: "Oferty", icon: Building2 },
   { href: "/links", label: "Linki afiliacyjne", icon: Link2 },
+  { href: "/landing-pages", label: "Landing Pages", icon: LayoutTemplate },
   { href: "/contacts", label: "Kontakty / Leady", icon: UserCheck },
   { href: "/reports", label: "Raporty", icon: BarChart2 },
 ];
