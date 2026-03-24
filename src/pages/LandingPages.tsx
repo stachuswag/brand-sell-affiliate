@@ -300,7 +300,7 @@ export default function LandingPages() {
                               size="sm"
                               className="h-8 w-8 p-0"
                               title="Podgląd"
-                              onClick={() => window.open(previewUrl(p.id), "_blank")}
+                              onClick={() => window.open(previewUrl(p), "_blank")}
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
@@ -310,7 +310,7 @@ export default function LandingPages() {
                               className="h-8 w-8 p-0"
                               title="Kopiuj link"
                               onClick={() => {
-                                navigator.clipboard.writeText(previewUrl(p.id));
+                                navigator.clipboard.writeText(previewUrl(p));
                                 toast({ title: "Link skopiowany!" });
                               }}
                             >
