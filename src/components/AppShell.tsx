@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from "@/assets/logo.webp";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
