@@ -165,7 +165,7 @@ export default function LandingPages() {
         // Store temporarily — saved on form submit
         (window as unknown as Record<string, unknown>).__lpContent = data.content;
       }
-    } catch (err) {
+    } catch {
       toast({ title: "Błąd", description: "Nie udało się wygenerować treści", variant: "destructive" });
     }
     setGenerating(false);
