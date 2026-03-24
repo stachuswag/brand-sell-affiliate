@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ArrowLeft, UserX, Lock, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, UserX, Lock, ShieldCheck, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import logo from "@/assets/logo.webp";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,6 +23,7 @@ export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loadingPartners, setLoadingPartners] = useState(true);
@@ -86,10 +88,21 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-10">
+      {/* Theme toggle — top right */}
+      <button
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        className="fixed top-4 right-4 h-9 w-9 flex items-center justify-center rounded-full border border-border bg-card hover:bg-muted transition-colors shadow-sm"
+        title={theme === "dark" ? "Tryb jasny" : "Tryb ciemny"}
+      >
+        {theme === "dark" ? <Sun className="h-4 w-4 text-foreground" /> : <Moon className="h-4 w-4 text-foreground" />}
+      </button>
+
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="flex flex-col items-center mb-10">
-          <img src={logo} alt="Brand and Sell" className="h-24 w-auto object-contain mb-4" />
+          <div className="rounded-2xl bg-primary p-4 mb-4 shadow-lg">
+            <img src={logo} alt="Brand and Sell" className="h-20 w-auto object-contain" />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             {step === "admin-login" ? "Panel Administratora" : "Panel Agenta"}
           </p>

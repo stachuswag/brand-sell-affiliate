@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import logo from "@/assets/logo.webp";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +30,8 @@ import {
   LayoutTemplate,
   Send,
   MessageSquare,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -119,6 +122,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { unreadCount, notifications, markAllRead } = useNotifications();
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -146,8 +150,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="font-semibold text-sm text-foreground lg:hidden">Brand and Sell</span>
           </div>
 
-          {/* Notifications */}
-          <DropdownMenu>
+          <div className="flex items-center gap-1">
+            {/* Theme toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Tryb jasny" : "Tryb ciemny"}
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+
+            {/* Notifications */}
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
@@ -185,7 +200,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 ))
               )}
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          </div>
         </header>
 
         {/* Page content */}
