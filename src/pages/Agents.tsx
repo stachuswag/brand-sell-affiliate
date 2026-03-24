@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCog, Plus, KeyRound, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, KeyRound, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {

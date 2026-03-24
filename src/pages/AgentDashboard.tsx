@@ -92,7 +92,7 @@ function generateCode(partnerName: string): string {
 }
 
 export default function AgentDashboard() {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [partnerId, setPartnerId] = useState<string | null>(null);
