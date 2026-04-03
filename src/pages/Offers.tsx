@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -29,8 +30,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building2, Percent, DollarSign } from "lucide-react";
+import { Plus, Pencil, Building2, Percent, DollarSign, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface Partner {
+  id: string;
+  name: string;
+}
 
 interface Offer {
   id: string;
@@ -74,6 +80,10 @@ export default function Offers() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [filterActive, setFilterActive] = useState("all");
+  const [allPartners, setAllPartners] = useState<Partner[]>([]);
+  const [partnerDialogOffer, setPartnerDialogOffer] = useState<Offer | null>(null);
+  const [assignedPartnerIds, setAssignedPartnerIds] = useState<string[]>([]);
+  const [savingPartners, setSavingPartners] = useState(false);
 
   const fetchOffers = async () => {
     const { data } = await supabase
@@ -84,7 +94,39 @@ export default function Offers() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOffers(); }, []);
+  const fetchPartners = async () => {
+    const { data } = await supabase.from("partners").select("id, name").eq("is_active", true).order("name");
+    if (data) setAllPartners(data);
+  };
+
+  useEffect(() => { fetchOffers(); fetchPartners(); }, []);
+
+  const openPartnerAssign = async (o: Offer) => {
+    setPartnerDialogOffer(o);
+    const { data } = await supabase.from("partner_offers").select("partner_id").eq("offer_id", o.id);
+    setAssignedPartnerIds(data?.map((r) => r.partner_id) ?? []);
+  };
+
+  const togglePartner = (pid: string) => {
+    setAssignedPartnerIds((prev) =>
+      prev.includes(pid) ? prev.filter((id) => id !== pid) : [...prev, pid]
+    );
+  };
+
+  const savePartnerAssignment = async () => {
+    if (!partnerDialogOffer) return;
+    setSavingPartners(true);
+    const offerId = partnerDialogOffer.id;
+    await supabase.from("partner_offers").delete().eq("offer_id", offerId);
+    if (assignedPartnerIds.length > 0) {
+      await supabase.from("partner_offers").insert(
+        assignedPartnerIds.map((pid) => ({ partner_id: pid, offer_id: offerId }))
+      );
+    }
+    toast({ title: "Partnerzy przypisani" });
+    setSavingPartners(false);
+    setPartnerDialogOffer(null);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -243,6 +285,9 @@ export default function Offers() {
                               <Button variant="ghost" size="sm" onClick={() => openEdit(o)} className="h-8 w-8 p-0">
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
+                              <Button variant="ghost" size="sm" onClick={() => openPartnerAssign(o)} className="h-8 w-8 p-0" title="Przypisz partnerów">
+                                <Users className="h-3.5 w-3.5" />
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => toggleActive(o)} className="h-8 px-2 text-xs">
                                 {o.is_active ? "Wyłącz" : "Włącz"}
                               </Button>
@@ -352,6 +397,37 @@ export default function Offers() {
                 <Button type="submit" disabled={saving || !form.name}>{saving ? "Zapisywanie..." : "Zapisz"}</Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Partner assignment dialog */}
+        <Dialog open={!!partnerDialogOffer} onOpenChange={(o) => !o && setPartnerDialogOffer(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Przypisz partnerów do oferty</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">{partnerDialogOffer?.name}</p>
+            {allPartners.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Brak aktywnych partnerów.</p>
+            ) : (
+              <div className="max-h-60 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                {allPartners.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
+                    <Checkbox
+                      checked={assignedPartnerIds.includes(p.id)}
+                      onCheckedChange={() => togglePartner(p.id)}
+                    />
+                    <span>{p.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPartnerDialogOffer(null)}>Anuluj</Button>
+              <Button onClick={savePartnerAssignment} disabled={savingPartners}>
+                {savingPartners ? "Zapisywanie..." : "Zapisz"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

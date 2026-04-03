@@ -422,6 +422,42 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_offers: {
+        Row: {
+          created_at: string
+          id: string
+          offer_id: string
+          partner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          offer_id: string
+          partner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          offer_id?: string
+          partner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_offers_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_offers_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partners: {
         Row: {
           agent_user_id: string | null

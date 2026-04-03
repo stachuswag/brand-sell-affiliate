@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,12 @@ import {
 import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface Offer {
+  id: string;
+  name: string;
+  city: string | null;
+}
+
 interface Partner {
   id: string;
   name: string;
@@ -60,6 +67,8 @@ export default function Partners() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deletePartner, setDeletePartner] = useState<Partner | null>(null);
+  const [allOffers, setAllOffers] = useState<Offer[]>([]);
+  const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
   const isAdmin = role === "admin";
 
   const fetchPartners = async () => {
@@ -88,15 +97,26 @@ export default function Partners() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPartners(); }, []);
+  const fetchOffers = async () => {
+    const { data } = await supabase.from("offers").select("id, name, city").eq("is_active", true).order("name");
+    if (data) setAllOffers(data);
+  };
+
+  const fetchPartnerOffers = async (partnerId: string) => {
+    const { data } = await supabase.from("partner_offers").select("offer_id").eq("partner_id", partnerId);
+    setSelectedOfferIds(data?.map((r) => r.offer_id) ?? []);
+  };
+
+  useEffect(() => { fetchPartners(); fetchOffers(); }, []);
 
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setSelectedOfferIds([]);
     setOpen(true);
   };
 
-  const openEdit = (p: Partner) => {
+  const openEdit = async (p: Partner) => {
     setEditing(p);
     setForm({
       name: p.name,
@@ -105,7 +125,14 @@ export default function Partners() {
       phone: p.phone ?? "",
       notes: p.notes ?? "",
     });
+    await fetchPartnerOffers(p.id);
     setOpen(true);
+  };
+
+  const toggleOffer = (offerId: string) => {
+    setSelectedOfferIds((prev) =>
+      prev.includes(offerId) ? prev.filter((id) => id !== offerId) : [...prev, offerId]
+    );
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -113,19 +140,34 @@ export default function Partners() {
     if (!form.name.trim()) return;
     setSaving(true);
 
+    let partnerId = editing?.id;
+
     if (editing) {
       const { error } = await supabase
         .from("partners")
         .update({ name: form.name, contact_person: form.contact_person || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null })
         .eq("id", editing.id);
-      if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
+      if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       else toast({ title: "Zaktualizowano partnera" });
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("partners")
-        .insert({ name: form.name, contact_person: form.contact_person || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null });
-      if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
-      else toast({ title: "Dodano partnera" });
+        .insert({ name: form.name, contact_person: form.contact_person || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null })
+        .select("id")
+        .single();
+      if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
+      partnerId = data.id;
+      toast({ title: "Dodano partnera" });
+    }
+
+    // Sync partner_offers
+    if (partnerId) {
+      await supabase.from("partner_offers").delete().eq("partner_id", partnerId);
+      if (selectedOfferIds.length > 0) {
+        await supabase.from("partner_offers").insert(
+          selectedOfferIds.map((oid) => ({ partner_id: partnerId!, offer_id: oid }))
+        );
+      }
     }
 
     setSaving(false);
@@ -282,6 +324,23 @@ export default function Partners() {
                 <Label htmlFor="p-notes">Notatki</Label>
                 <Textarea id="p-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Dodatkowe informacje..." rows={3} />
               </div>
+              {allOffers.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Przypisane oferty</Label>
+                  <div className="max-h-40 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                    {allOffers.map((o) => (
+                      <label key={o.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
+                        <Checkbox
+                          checked={selectedOfferIds.includes(o.id)}
+                          onCheckedChange={() => toggleOffer(o.id)}
+                        />
+                        <span>{o.name}</span>
+                        {o.city && <span className="text-xs text-muted-foreground">• {o.city}</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Anuluj</Button>
                 <Button type="submit" disabled={saving}>{saving ? "Zapisywanie..." : "Zapisz"}</Button>
