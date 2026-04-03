@@ -324,6 +324,23 @@ export default function Partners() {
                 <Label htmlFor="p-notes">Notatki</Label>
                 <Textarea id="p-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Dodatkowe informacje..." rows={3} />
               </div>
+              {allOffers.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Przypisane oferty</Label>
+                  <div className="max-h-40 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                    {allOffers.map((o) => (
+                      <label key={o.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
+                        <Checkbox
+                          checked={selectedOfferIds.includes(o.id)}
+                          onCheckedChange={() => toggleOffer(o.id)}
+                        />
+                        <span>{o.name}</span>
+                        {o.city && <span className="text-xs text-muted-foreground">• {o.city}</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Anuluj</Button>
                 <Button type="submit" disabled={saving}>{saving ? "Zapisywanie..." : "Zapisz"}</Button>
