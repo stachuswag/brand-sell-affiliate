@@ -623,12 +623,13 @@ export default function AgentDashboard() {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
+                         <TableRow>
                           <TableHead>Klient</TableHead>
                           <TableHead>Kontakt</TableHead>
                           <TableHead>Link</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Akcje</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
