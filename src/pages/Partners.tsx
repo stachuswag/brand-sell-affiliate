@@ -67,6 +67,8 @@ export default function Partners() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deletePartner, setDeletePartner] = useState<Partner | null>(null);
+  const [allOffers, setAllOffers] = useState<Offer[]>([]);
+  const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
   const isAdmin = role === "admin";
 
   const fetchPartners = async () => {
