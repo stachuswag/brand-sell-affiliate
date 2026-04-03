@@ -50,6 +50,7 @@ interface Partner {
   phone: string | null;
   notes: string | null;
   is_active: boolean;
+  agent_user_id: string | null;
   created_at: string;
   link_count?: number;
   contact_count?: number;
@@ -182,11 +183,30 @@ export default function Partners() {
 
   const handleDeletePartner = async () => {
     if (!deletePartner) return;
-    const { error } = await supabase.from("partners").delete().eq("id", deletePartner.id);
-    if (error) {
-      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          action: "delete",
+          partner_id: deletePartner.id,
+          user_id: deletePartner.agent_user_id,
+        }),
+      }
+    );
+
+    const result = await res.json();
+    if (!res.ok || result.error) {
+      toast({ title: "Błąd", description: result.error, variant: "destructive" });
     } else {
-      toast({ title: "Partner usunięty" });
+      toast({ title: "Partner usunięty z systemu" });
       fetchPartners();
     }
     setDeletePartner(null);

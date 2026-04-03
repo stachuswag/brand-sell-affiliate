@@ -171,8 +171,8 @@ export default function Chat() {
       (memberships ?? []).map((m) => [m.channel_id, { closed_at: m.closed_at, id: m.id }])
     );
 
-    const enriched: Channel[] = await Promise.all(
-      chans.map(async (c) => {
+    const enrichedResults = await Promise.all(
+      chans.map(async (c): Promise<Channel | null> => {
         const membership = membershipMap.get(c.id);
         const base = {
           ...c,
@@ -188,14 +188,21 @@ export default function Chat() {
             .eq("channel_id", c.id);
           const otherId = members?.find((m) => m.user_id !== user.id)?.user_id;
           const profile = otherId ? profileMap.get(otherId) : null;
+
+          if (!otherId || !profile) {
+            return null;
+          }
+
           return {
             ...base,
-            other_user_name: profile?.full_name ?? profile?.email ?? "Nieznany",
+            other_user_name: profile.full_name ?? profile.email ?? "Nieznany",
           };
         }
         return base;
       })
     );
+
+    const enriched = enrichedResults.filter((channel): channel is Channel => channel !== null);
 
     // Filter: show channel if:
     // - general (always show)
