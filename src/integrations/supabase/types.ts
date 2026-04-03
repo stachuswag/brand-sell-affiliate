@@ -530,6 +530,7 @@ export type Database = {
           is_active: boolean
           name: string
           notes: string | null
+          parent_partner_id: string | null
           phone: string | null
           updated_at: string
         }
@@ -543,6 +544,7 @@ export type Database = {
           is_active?: boolean
           name: string
           notes?: string | null
+          parent_partner_id?: string | null
           phone?: string | null
           updated_at?: string
         }
@@ -556,10 +558,19 @@ export type Database = {
           is_active?: boolean
           name?: string
           notes?: string | null
+          parent_partner_id?: string | null
           phone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "partners_parent_partner_id_fkey"
+            columns: ["parent_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
