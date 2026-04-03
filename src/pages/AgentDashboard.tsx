@@ -757,6 +757,59 @@ export default function AgentDashboard() {
               )}
             </div>
           </TabsContent>
+
+          {/* SUB-PARTNERS TAB */}
+          <TabsContent value="sub-partners" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setSubPartnerOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Dodaj partnera
+              </Button>
+            </div>
+            <Card>
+              <CardContent className="p-0">
+                {subPartners.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Brak sub-partnerów. Dodaj swojego pierwszego partnera.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Firma</TableHead>
+                          <TableHead>Osoba kontaktowa</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Telefon</TableHead>
+                          <TableHead>Dodano</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {subPartners.map((sp) => (
+                          <TableRow key={sp.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {sp.name}
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-200 bg-purple-50 text-purple-700">
+                                  Sub-partner {partnerName}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{sp.contact_person ?? "—"}</TableCell>
+                            <TableCell className="text-sm">{sp.email ?? "—"}</TableCell>
+                            <TableCell className="text-sm">{sp.phone ?? "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {format(new Date(sp.created_at), "d MMM yyyy", { locale: pl })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Add Contact Dialog */}
