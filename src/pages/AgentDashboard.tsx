@@ -998,6 +998,80 @@ export default function AgentDashboard() {
           onOpenChange={(o) => !o && setSelectedOffer(null)}
           readOnly
         />
+
+        {/* Add Sub-Partner Dialog */}
+        <Dialog open={subPartnerOpen} onOpenChange={setSubPartnerOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Dodaj sub-partnera</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddSubPartner} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nazwa firmy *</Label>
+                <Input
+                  value={subPartnerForm.name}
+                  onChange={(e) => setSubPartnerForm({ ...subPartnerForm, name: e.target.value })}
+                  placeholder="np. Biuro Nieruchomości XYZ"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Osoba kontaktowa</Label>
+                <Input
+                  value={subPartnerForm.contact_person}
+                  onChange={(e) => setSubPartnerForm({ ...subPartnerForm, contact_person: e.target.value })}
+                  placeholder="Jan Kowalski"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={subPartnerForm.email}
+                    onChange={(e) => setSubPartnerForm({ ...subPartnerForm, email: e.target.value })}
+                    placeholder="kontakt@firma.pl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefon</Label>
+                  <Input
+                    value={subPartnerForm.phone}
+                    onChange={(e) => setSubPartnerForm({ ...subPartnerForm, phone: e.target.value })}
+                    placeholder="+48 500 000 000"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setSubPartnerOpen(false)}>Anuluj</Button>
+                <Button type="submit" disabled={savingSubPartner || !subPartnerForm.name.trim()}>
+                  {savingSubPartner ? "Dodawanie..." : "Dodaj partnera"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Contact Confirmation */}
+        <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Usuń klienta</AlertDialogTitle>
+              <AlertDialogDescription>
+                Czy na pewno chcesz usunąć klienta <strong>{deleteContact?.full_name}</strong>? Operacja jest nieodwracalna.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDeleteContact}
+              >
+                Usuń
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppShell>
   );
