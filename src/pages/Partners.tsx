@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,12 @@ import {
 } from "@/components/ui/table";
 import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface Offer {
+  id: string;
+  name: string;
+  city: string | null;
+}
 
 interface Partner {
   id: string;
