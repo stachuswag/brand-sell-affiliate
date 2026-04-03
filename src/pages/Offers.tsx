@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building2, Percent, DollarSign, Users, Trash2 } from "lucide-react";
+import { Plus, Pencil, Building2, Percent, DollarSign, Users, Trash2, FileText } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
