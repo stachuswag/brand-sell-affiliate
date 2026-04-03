@@ -30,7 +30,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building2, Percent, DollarSign, Users } from "lucide-react";
+import { Plus, Pencil, Building2, Percent, DollarSign, Users, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {
@@ -84,6 +94,7 @@ export default function Offers() {
   const [partnerDialogOffer, setPartnerDialogOffer] = useState<Offer | null>(null);
   const [assignedPartnerIds, setAssignedPartnerIds] = useState<string[]>([]);
   const [savingPartners, setSavingPartners] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Offer | null>(null);
 
   const fetchOffers = async () => {
     const { data } = await supabase
@@ -191,6 +202,16 @@ export default function Offers() {
     fetchOffers();
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await supabase.from("partner_offers").delete().eq("offer_id", deleteTarget.id);
+    const { error } = await supabase.from("offers").delete().eq("id", deleteTarget.id);
+    if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    else toast({ title: "Oferta usunięta" });
+    setDeleteTarget(null);
+    fetchOffers();
+  };
+
   const getCommissionDisplay = (o: Offer) => {
     if (o.commission_type === "amount" && o.commission_amount != null) return fmt(o.commission_amount);
     if (o.commission_percent != null) return `${o.commission_percent}%`;
@@ -290,6 +311,9 @@ export default function Offers() {
                               </Button>
                               <Button variant="ghost" size="sm" onClick={() => toggleActive(o)} className="h-8 px-2 text-xs">
                                 {o.is_active ? "Wyłącz" : "Włącz"}
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(o)} className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Usuń ofertę">
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           </TableCell>
@@ -430,6 +454,24 @@ export default function Offers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Usunąć ofertę?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Oferta „{deleteTarget?.name}" zostanie trwale usunięta wraz z przypisaniami do partnerów. Tej operacji nie można cofnąć.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Usuń
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppShell>
   );
