@@ -50,6 +50,7 @@ interface Partner {
   phone: string | null;
   notes: string | null;
   is_active: boolean;
+  agent_user_id: string | null;
   created_at: string;
   link_count?: number;
   contact_count?: number;
