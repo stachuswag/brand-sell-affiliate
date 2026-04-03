@@ -41,6 +41,7 @@ import {
   Check,
   ExternalLink,
   FileText,
+  Package,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
@@ -78,6 +79,16 @@ interface Offer {
   commission_type: string | null;
   commission_percent: number | null;
   commission_amount: number | null;
+  submitted_by_partner_id?: string | null;
+}
+
+interface PartnerOffer {
+  id: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+  price: number | null;
+  submitted_by_partner_id?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -102,6 +113,7 @@ export default function AgentDashboard() {
   const [links, setLinks] = useState<AffiliateLink[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [partnerOffers, setPartnerOffers] = useState<PartnerOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
@@ -126,6 +138,17 @@ export default function AgentDashboard() {
   });
   const [savingLink, setSavingLink] = useState(false);
 
+  // Add offer dialog
+  const [offerOpen, setOfferOpen] = useState(false);
+  const [offerForm, setOfferForm] = useState({
+    name: "",
+    city: "",
+    address: "",
+    price: "",
+    description: "",
+  });
+  const [savingOffer, setSavingOffer] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     loadAgentData();
@@ -135,7 +158,6 @@ export default function AgentDashboard() {
     if (!user) return;
     setLoading(true);
 
-    // Get partner linked to this agent
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("partner_id")
@@ -150,7 +172,6 @@ export default function AgentDashboard() {
     const pid = roleData.partner_id;
     setPartnerId(pid);
 
-    // Load partner name
     const { data: partnerData } = await supabase
       .from("partners")
       .select("name")
@@ -180,7 +201,7 @@ export default function AgentDashboard() {
       if (contactsData) setContacts(contactsData as Contact[]);
     }
 
-    // Load offers assigned to this partner
+    // Load offers assigned to this partner (from admin)
     const { data: assignedOfferIds } = await supabase
       .from("partner_offers")
       .select("offer_id")
@@ -191,7 +212,7 @@ export default function AgentDashboard() {
     if (offerIds.length > 0) {
       const { data: offersData } = await supabase
         .from("offers")
-        .select("id, name, city, address, price, commission_type, commission_percent, commission_amount")
+        .select("id, name, city, address, price, commission_type, commission_percent, commission_amount, submitted_by_partner_id")
         .in("id", offerIds)
         .eq("is_active", true)
         .order("name");
@@ -199,6 +220,16 @@ export default function AgentDashboard() {
     } else {
       setOffers([]);
     }
+
+    // Load offers submitted by this partner
+    const { data: myOffers } = await supabase
+      .from("offers")
+      .select("id, name, city, address, price, submitted_by_partner_id")
+      .eq("submitted_by_partner_id", pid)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+
+    setPartnerOffers((myOffers ?? []) as PartnerOffer[]);
 
     setLoading(false);
   };
@@ -217,8 +248,30 @@ export default function AgentDashboard() {
     if (!contactForm.full_name || !partnerId) return;
     setSavingContact(true);
 
-    // Find a link_id — use selected or first available
-    const linkId = contactForm.link_id || links[0]?.id || null;
+    // Use selected link or first available; if none, create a temporary "manual" link
+    let linkId = contactForm.link_id || links[0]?.id || null;
+
+    if (!linkId) {
+      // Create a default link for manual contacts
+      const code = generateCode(partnerName) + "-MAN";
+      const { data: newLink, error: linkErr } = await supabase
+        .from("affiliate_links")
+        .insert({
+          partner_id: partnerId,
+          tracking_code: code,
+          link_type: "partner" as const,
+          property_name: "Kontakt ręczny",
+        })
+        .select("id")
+        .single();
+
+      if (linkErr || !newLink) {
+        toast({ title: "Błąd", description: linkErr?.message ?? "Nie udało się utworzyć linku", variant: "destructive" });
+        setSavingContact(false);
+        return;
+      }
+      linkId = newLink.id;
+    }
 
     const { error } = await supabase.from("contacts").insert({
       full_name: contactForm.full_name,
@@ -226,7 +279,7 @@ export default function AgentDashboard() {
       phone: contactForm.phone || null,
       message: contactForm.message || null,
       affiliate_link_id: linkId,
-      status: "new",
+      status: "new" as const,
     });
 
     if (error) {
@@ -266,6 +319,44 @@ export default function AgentDashboard() {
       loadAgentData();
     }
     setSavingLink(false);
+  };
+
+  const handleAddOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offerForm.name.trim() || !partnerId) return;
+    setSavingOffer(true);
+
+    const { data: newOffer, error } = await supabase
+      .from("offers")
+      .insert({
+        name: offerForm.name,
+        city: offerForm.city || null,
+        address: offerForm.address || null,
+        price: offerForm.price ? parseFloat(offerForm.price) : null,
+        description: offerForm.description || null,
+        submitted_by_partner_id: partnerId,
+        created_by: user!.id,
+      })
+      .select("id")
+      .single();
+
+    if (error || !newOffer) {
+      toast({ title: "Błąd", description: error?.message ?? "Nie udało się dodać oferty", variant: "destructive" });
+      setSavingOffer(false);
+      return;
+    }
+
+    // Auto-assign to this partner
+    await supabase.from("partner_offers").insert({
+      partner_id: partnerId,
+      offer_id: newOffer.id,
+    });
+
+    toast({ title: "Oferta dodana!", description: "Oferta została przypisana do Twojego konta." });
+    setOfferOpen(false);
+    setOfferForm({ name: "", city: "", address: "", price: "", description: "" });
+    loadAgentData();
+    setSavingOffer(false);
   };
 
   const fmt = (n: number) =>
@@ -309,7 +400,7 @@ export default function AgentDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -345,6 +436,17 @@ export default function AgentDashboard() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                <Package className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{partnerOffers.length}</p>
+                <p className="text-xs text-muted-foreground">Moje oferty</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Tabs */}
@@ -353,6 +455,7 @@ export default function AgentDashboard() {
             <TabsTrigger value="links">Moje linki ({links.length})</TabsTrigger>
             <TabsTrigger value="contacts">Klienci ({contacts.length})</TabsTrigger>
             <TabsTrigger value="offers">Oferty ({offers.length})</TabsTrigger>
+            <TabsTrigger value="my-offers">Moje oferty ({partnerOffers.length})</TabsTrigger>
           </TabsList>
 
           {/* LINKS TAB */}
@@ -438,7 +541,7 @@ export default function AgentDashboard() {
                 {contacts.length === 0 ? (
                   <div className="p-12 text-center">
                     <UserCheck className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">Brak klientów przez Twoje linki.</p>
+                    <p className="text-sm text-muted-foreground">Brak klientów. Dodaj pierwszego klienta ręcznie.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -490,7 +593,7 @@ export default function AgentDashboard() {
             </Card>
           </TabsContent>
 
-          {/* OFFERS TAB */}
+          {/* ASSIGNED OFFERS TAB */}
           <TabsContent value="offers">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {offers.map((o) => (
@@ -521,7 +624,42 @@ export default function AgentDashboard() {
               ))}
               {offers.length === 0 && (
                 <div className="col-span-full p-12 text-center text-muted-foreground text-sm">
-                  Brak aktywnych ofert.
+                  Brak przypisanych ofert od administratora.
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* MY (PARTNER) OFFERS TAB */}
+          <TabsContent value="my-offers" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setOfferOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Dodaj ofertę
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {partnerOffers.map((o) => (
+                <Card key={o.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base font-semibold">{o.name}</CardTitle>
+                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                        Twoja oferta
+                      </Badge>
+                    </div>
+                    {o.city && <p className="text-xs text-muted-foreground">{o.city}</p>}
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {o.address && <p className="text-xs text-muted-foreground">{o.address}</p>}
+                    {o.price && (
+                      <span className="text-sm font-bold text-foreground">{fmt(o.price)}</span>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+              {partnerOffers.length === 0 && (
+                <div className="col-span-full p-12 text-center text-muted-foreground text-sm">
+                  Nie dodałeś jeszcze żadnych ofert. Kliknij "Dodaj ofertę" aby dodać swoją pierwszą.
                 </div>
               )}
             </div>
@@ -532,7 +670,7 @@ export default function AgentDashboard() {
         <Dialog open={contactOpen} onOpenChange={setContactOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Dodaj klienta manualnie</DialogTitle>
+              <DialogTitle>Dodaj klienta ręcznie</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddContact} className="space-y-4">
               <div className="space-y-2">
@@ -568,7 +706,7 @@ export default function AgentDashboard() {
                   <Label>Przypisz do linku (opcjonalnie)</Label>
                   <Select value={contactForm.link_id} onValueChange={(v) => setContactForm({ ...contactForm, link_id: v })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Wybierz link" />
+                      <SelectValue placeholder="Automatycznie" />
                     </SelectTrigger>
                     <SelectContent>
                       {links.map((l) => (
@@ -581,7 +719,7 @@ export default function AgentDashboard() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Wiadomość</Label>
+                <Label>Wiadomość / Notatka</Label>
                 <Textarea
                   value={contactForm.message}
                   onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
@@ -639,6 +777,68 @@ export default function AgentDashboard() {
                 <Button type="button" variant="outline" onClick={() => setLinkOpen(false)}>Anuluj</Button>
                 <Button type="submit" disabled={savingLink}>
                   {savingLink ? "Tworzenie..." : "Utwórz link"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Offer Dialog */}
+        <Dialog open={offerOpen} onOpenChange={setOfferOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Dodaj swoją ofertę</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddOffer} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nazwa oferty *</Label>
+                <Input
+                  value={offerForm.name}
+                  onChange={(e) => setOfferForm({ ...offerForm, name: e.target.value })}
+                  placeholder="np. Apartament ul. Kwiatowa 5"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Miasto</Label>
+                  <Input
+                    value={offerForm.city}
+                    onChange={(e) => setOfferForm({ ...offerForm, city: e.target.value })}
+                    placeholder="Warszawa"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cena (PLN)</Label>
+                  <Input
+                    type="number"
+                    value={offerForm.price}
+                    onChange={(e) => setOfferForm({ ...offerForm, price: e.target.value })}
+                    placeholder="500000"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Adres</Label>
+                <Input
+                  value={offerForm.address}
+                  onChange={(e) => setOfferForm({ ...offerForm, address: e.target.value })}
+                  placeholder="ul. Kwiatowa 5/3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Opis</Label>
+                <Textarea
+                  value={offerForm.description}
+                  onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })}
+                  placeholder="Opis nieruchomości..."
+                  rows={3}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setOfferOpen(false)}>Anuluj</Button>
+                <Button type="submit" disabled={savingOffer || !offerForm.name.trim()}>
+                  {savingOffer ? "Dodawanie..." : "Dodaj ofertę"}
                 </Button>
               </DialogFooter>
             </form>

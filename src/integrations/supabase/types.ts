@@ -434,6 +434,7 @@ export type Database = {
           name: string
           offer_type: string | null
           price: number | null
+          submitted_by_partner_id: string | null
           updated_at: string
         }
         Insert: {
@@ -451,6 +452,7 @@ export type Database = {
           name: string
           offer_type?: string | null
           price?: number | null
+          submitted_by_partner_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -468,9 +470,18 @@ export type Database = {
           name?: string
           offer_type?: string | null
           price?: number | null
+          submitted_by_partner_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "offers_submitted_by_partner_id_fkey"
+            columns: ["submitted_by_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       partner_offers: {
         Row: {

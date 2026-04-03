@@ -23,8 +23,9 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   if (!user) return <Navigate to="/login" replace />;
   if (requireAdmin && role !== "admin") return <Navigate to="/dashboard" replace />;
 
-  // Agents can only access /agent
-  if (role === "agent" && window.location.pathname !== "/agent") {
+  // Agents can only access /agent and /chat
+  const agentAllowed = ["/agent", "/chat"];
+  if (role === "agent" && !agentAllowed.includes(window.location.pathname)) {
     return <Navigate to="/agent" replace />;
   }
 
