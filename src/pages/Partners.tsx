@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 interface Offer {
@@ -51,6 +52,7 @@ interface Partner {
   notes: string | null;
   is_active: boolean;
   agent_user_id: string | null;
+  parent_partner_id: string | null;
   created_at: string;
   link_count?: number;
   contact_count?: number;
@@ -254,7 +256,16 @@ export default function Partners() {
                   <TableBody>
                     {partners.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {p.name}
+                            {p.parent_partner_id && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-200 bg-purple-50 text-purple-700">
+                                Sub-partner
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-muted-foreground">{p.contact_person ?? "—"}</TableCell>
                         <TableCell>
                           {p.email ? (

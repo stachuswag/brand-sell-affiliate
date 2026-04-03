@@ -32,6 +32,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Link2,
   UserCheck,
   Building2,
@@ -42,6 +52,8 @@ import {
   ExternalLink,
   FileText,
   Package,
+  Trash2,
+  Users,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
@@ -89,6 +101,15 @@ interface PartnerOffer {
   address: string | null;
   price: number | null;
   submitted_by_partner_id?: string | null;
+}
+
+interface SubPartner {
+  id: string;
+  name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  created_at: string;
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -148,6 +169,15 @@ export default function AgentDashboard() {
     description: "",
   });
   const [savingOffer, setSavingOffer] = useState(false);
+
+  // Sub-partners
+  const [subPartners, setSubPartners] = useState<SubPartner[]>([]);
+  const [subPartnerOpen, setSubPartnerOpen] = useState(false);
+  const [subPartnerForm, setSubPartnerForm] = useState({ name: "", contact_person: "", email: "", phone: "" });
+  const [savingSubPartner, setSavingSubPartner] = useState(false);
+
+  // Delete contact
+  const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -230,6 +260,15 @@ export default function AgentDashboard() {
       .order("created_at", { ascending: false });
 
     setPartnerOffers((myOffers ?? []) as PartnerOffer[]);
+
+    // Load sub-partners
+    const { data: subData } = await supabase
+      .from("partners")
+      .select("id, name, contact_person, email, phone, created_at")
+      .eq("parent_partner_id", pid)
+      .order("created_at", { ascending: false });
+
+    setSubPartners((subData ?? []) as SubPartner[]);
 
     setLoading(false);
   };
@@ -359,6 +398,42 @@ export default function AgentDashboard() {
     setSavingOffer(false);
   };
 
+  const handleDeleteContact = async () => {
+    if (!deleteContact) return;
+    const { error } = await supabase.from("contacts").delete().eq("id", deleteContact.id);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Klient usunięty" });
+      loadAgentData();
+    }
+    setDeleteContact(null);
+  };
+
+  const handleAddSubPartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subPartnerForm.name.trim() || !partnerId) return;
+    setSavingSubPartner(true);
+
+    const { error } = await supabase.from("partners").insert({
+      name: subPartnerForm.name,
+      contact_person: subPartnerForm.contact_person || null,
+      email: subPartnerForm.email || null,
+      phone: subPartnerForm.phone || null,
+      parent_partner_id: partnerId,
+    });
+
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Sub-partner dodany!" });
+      setSubPartnerOpen(false);
+      setSubPartnerForm({ name: "", contact_person: "", email: "", phone: "" });
+      loadAgentData();
+    }
+    setSavingSubPartner(false);
+  };
+
   const fmt = (n: number) =>
     new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(n);
 
@@ -456,6 +531,7 @@ export default function AgentDashboard() {
             <TabsTrigger value="contacts">Klienci ({contacts.length})</TabsTrigger>
             <TabsTrigger value="offers">Oferty ({offers.length})</TabsTrigger>
             <TabsTrigger value="my-offers">Moje oferty ({partnerOffers.length})</TabsTrigger>
+            <TabsTrigger value="sub-partners">Moi partnerzy ({subPartners.length})</TabsTrigger>
           </TabsList>
 
           {/* LINKS TAB */}
@@ -547,12 +623,13 @@ export default function AgentDashboard() {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
+                         <TableRow>
                           <TableHead>Klient</TableHead>
                           <TableHead>Kontakt</TableHead>
                           <TableHead>Link</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Akcje</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -586,6 +663,17 @@ export default function AgentDashboard() {
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {format(new Date(c.created_at), "d MMM yyyy", { locale: pl })}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeleteContact(c)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="Usuń klienta"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
                               </TableCell>
                             </TableRow>
                           );
@@ -668,6 +756,59 @@ export default function AgentDashboard() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* SUB-PARTNERS TAB */}
+          <TabsContent value="sub-partners" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setSubPartnerOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Dodaj partnera
+              </Button>
+            </div>
+            <Card>
+              <CardContent className="p-0">
+                {subPartners.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Brak sub-partnerów. Dodaj swojego pierwszego partnera.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Firma</TableHead>
+                          <TableHead>Osoba kontaktowa</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Telefon</TableHead>
+                          <TableHead>Dodano</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {subPartners.map((sp) => (
+                          <TableRow key={sp.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {sp.name}
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-200 bg-purple-50 text-purple-700">
+                                  Sub-partner {partnerName}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{sp.contact_person ?? "—"}</TableCell>
+                            <TableCell className="text-sm">{sp.email ?? "—"}</TableCell>
+                            <TableCell className="text-sm">{sp.phone ?? "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {format(new Date(sp.created_at), "d MMM yyyy", { locale: pl })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
@@ -857,6 +998,80 @@ export default function AgentDashboard() {
           onOpenChange={(o) => !o && setSelectedOffer(null)}
           readOnly
         />
+
+        {/* Add Sub-Partner Dialog */}
+        <Dialog open={subPartnerOpen} onOpenChange={setSubPartnerOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Dodaj sub-partnera</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddSubPartner} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nazwa firmy *</Label>
+                <Input
+                  value={subPartnerForm.name}
+                  onChange={(e) => setSubPartnerForm({ ...subPartnerForm, name: e.target.value })}
+                  placeholder="np. Biuro Nieruchomości XYZ"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Osoba kontaktowa</Label>
+                <Input
+                  value={subPartnerForm.contact_person}
+                  onChange={(e) => setSubPartnerForm({ ...subPartnerForm, contact_person: e.target.value })}
+                  placeholder="Jan Kowalski"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={subPartnerForm.email}
+                    onChange={(e) => setSubPartnerForm({ ...subPartnerForm, email: e.target.value })}
+                    placeholder="kontakt@firma.pl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefon</Label>
+                  <Input
+                    value={subPartnerForm.phone}
+                    onChange={(e) => setSubPartnerForm({ ...subPartnerForm, phone: e.target.value })}
+                    placeholder="+48 500 000 000"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setSubPartnerOpen(false)}>Anuluj</Button>
+                <Button type="submit" disabled={savingSubPartner || !subPartnerForm.name.trim()}>
+                  {savingSubPartner ? "Dodawanie..." : "Dodaj partnera"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Contact Confirmation */}
+        <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Usuń klienta</AlertDialogTitle>
+              <AlertDialogDescription>
+                Czy na pewno chcesz usunąć klienta <strong>{deleteContact?.full_name}</strong>? Operacja jest nieodwracalna.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDeleteContact}
+              >
+                Usuń
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppShell>
   );
