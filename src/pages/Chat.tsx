@@ -543,38 +543,44 @@ export default function Chat() {
 
   return (
     <AppShell>
-      <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+      <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden bg-background">
         {/* ---- Sidebar ---- */}
-        <aside className="w-64 flex-shrink-0 bg-muted/30 border-r border-border flex flex-col">
-          <div className="px-4 py-4 border-b border-border">
-            <h2 className="text-sm font-bold text-foreground">Chat</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Komunikacja w czasie rzeczywistym</p>
+        <aside className="w-72 flex-shrink-0 bg-card border-r border-border flex flex-col">
+          <div className="px-5 py-4 border-b border-border">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <MessageSquare className="h-4.5 w-4.5 text-primary" />
+              Wiadomości
+            </h2>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-2">
+          <div className="flex-1 overflow-y-auto py-3">
             {/* Channels */}
-            <div className="px-3 py-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-1">Kanały</p>
-              {channels.filter((c) => c.type === "general" || c.type === "group").map((ch) => (
-                <ChannelButton key={ch.id} ch={ch} />
-              ))}
+            <div className="px-3 mb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">Kanały</p>
+              <div className="space-y-0.5">
+                {channels.filter((c) => c.type === "general" || c.type === "group").map((ch) => (
+                  <ChannelButton key={ch.id} ch={ch} />
+                ))}
+              </div>
               <button
                 onClick={() => setGroupOpen(true)}
-                className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mt-0.5"
+                className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mt-1"
               >
                 <Plus className="h-3.5 w-3.5" /> Utwórz grupę
               </button>
             </div>
 
             {/* Direct messages */}
-            <div className="px-3 py-1 mt-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-1">Wiadomości prywatne</p>
-              {channels.filter((c) => c.type === "direct").map((ch) => (
-                <ChannelButton key={ch.id} ch={ch} />
-              ))}
+            <div className="px-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">Wiadomości prywatne</p>
+              <div className="space-y-0.5">
+                {channels.filter((c) => c.type === "direct").map((ch) => (
+                  <ChannelButton key={ch.id} ch={ch} />
+                ))}
+              </div>
               <button
                 onClick={() => setDmOpen(true)}
-                className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mt-0.5"
+                className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mt-1"
               >
                 <UserPlus className="h-3.5 w-3.5" /> Nowa wiadomość
               </button>
