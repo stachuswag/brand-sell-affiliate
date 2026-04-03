@@ -112,10 +112,11 @@ export default function Partners() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setSelectedOfferIds([]);
     setOpen(true);
   };
 
-  const openEdit = (p: Partner) => {
+  const openEdit = async (p: Partner) => {
     setEditing(p);
     setForm({
       name: p.name,
@@ -124,7 +125,14 @@ export default function Partners() {
       phone: p.phone ?? "",
       notes: p.notes ?? "",
     });
+    await fetchPartnerOffers(p.id);
     setOpen(true);
+  };
+
+  const toggleOffer = (offerId: string) => {
+    setSelectedOfferIds((prev) =>
+      prev.includes(offerId) ? prev.filter((id) => id !== offerId) : [...prev, offerId]
+    );
   };
 
   const handleSave = async (e: React.FormEvent) => {
