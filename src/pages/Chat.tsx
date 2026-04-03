@@ -95,20 +95,27 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ---- Load all users ----
+  // ---- Load all users (only those with active roles) ----
   const loadAllUsers = useCallback(async () => {
     if (!user) return;
-    const [{ data: profiles }, { data: partnerAgents }] = await Promise.all([
+    const [{ data: profiles }, { data: partnerAgents }, { data: roles }] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, email"),
       supabase.from("partners").select("agent_user_id, name").not("agent_user_id", "is", null),
+      supabase.from("user_roles").select("user_id"),
     ]);
+
+    // Only keep users that have an active role entry
+    const activeUserIds = new Set((roles ?? []).map((r) => r.user_id));
+
     const agentNameMap = new Map(
       (partnerAgents ?? []).map((p) => [p.agent_user_id, p.name])
     );
-    const enriched = (profiles ?? []).map((p) => ({
-      ...p,
-      full_name: agentNameMap.get(p.user_id) ?? p.full_name,
-    }));
+    const enriched = (profiles ?? [])
+      .filter((p) => activeUserIds.has(p.user_id)) // filter out orphaned profiles
+      .map((p) => ({
+        ...p,
+        full_name: agentNameMap.get(p.user_id) ?? p.full_name,
+      }));
     setAllUsers(enriched.filter((p) => p.user_id !== user.id) as UserProfile[]);
     return enriched;
   }, [user]);
