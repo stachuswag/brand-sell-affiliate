@@ -100,7 +100,7 @@ export default function Chat() {
     if (!user) return;
     const [{ data: profiles }, { data: partnerAgents }, { data: roles }] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, email"),
-      supabase.from("partners").select("agent_user_id, name").not("agent_user_id", "is", null),
+      supabase.from("partners").select("agent_user_id, name").eq("is_active", true).not("agent_user_id", "is", null),
       supabase.from("user_roles").select("user_id, role"),
     ]);
 
