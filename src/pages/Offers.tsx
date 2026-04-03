@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building2, Percent, DollarSign, Users, Trash2 } from "lucide-react";
+import { Plus, Pencil, Building2, Percent, DollarSign, Users, Trash2, FileText } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
 
 interface Partner {
   id: string;
@@ -95,6 +96,7 @@ export default function Offers() {
   const [assignedPartnerIds, setAssignedPartnerIds] = useState<string[]>([]);
   const [savingPartners, setSavingPartners] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Offer | null>(null);
+  const [attachmentsOffer, setAttachmentsOffer] = useState<Offer | null>(null);
 
   const fetchOffers = async () => {
     const { data } = await supabase
@@ -277,8 +279,10 @@ export default function Offers() {
                     {filtered.map((o) => (
                       <TableRow key={o.id}>
                         <TableCell>
-                          <div className="font-medium">{o.name}</div>
-                          {o.address && <div className="text-xs text-muted-foreground mt-0.5">{o.address}</div>}
+                          <button onClick={() => setAttachmentsOffer(o)} className="text-left hover:underline cursor-pointer">
+                            <div className="font-medium">{o.name}</div>
+                            {o.address && <div className="text-xs text-muted-foreground mt-0.5">{o.address}</div>}
+                          </button>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{o.city ?? "—"}</TableCell>
                         <TableCell>
@@ -308,6 +312,9 @@ export default function Offers() {
                               </Button>
                               <Button variant="ghost" size="sm" onClick={() => openPartnerAssign(o)} className="h-8 w-8 p-0" title="Przypisz partnerów">
                                 <Users className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setAttachmentsOffer(o)} className="h-8 w-8 p-0" title="Pliki i linki">
+                                <FileText className="h-3.5 w-3.5" />
                               </Button>
                               <Button variant="ghost" size="sm" onClick={() => toggleActive(o)} className="h-8 px-2 text-xs">
                                 {o.is_active ? "Wyłącz" : "Włącz"}
@@ -472,6 +479,13 @@ export default function Offers() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Offer attachments dialog */}
+        <OfferAttachmentsDialog
+          offer={attachmentsOffer}
+          open={!!attachmentsOffer}
+          onOpenChange={(o) => !o && setAttachmentsOffer(null)}
+        />
       </div>
     </AppShell>
   );

@@ -40,8 +40,10 @@ import {
   Copy,
   Check,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 
@@ -102,6 +104,7 @@ export default function AgentDashboard() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   // Add contact dialog
   const [contactOpen, setContactOpen] = useState(false);
@@ -491,7 +494,11 @@ export default function AgentDashboard() {
           <TabsContent value="offers">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {offers.map((o) => (
-                <Card key={o.id} className="overflow-hidden">
+                <Card
+                  key={o.id}
+                  className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+                  onClick={() => setSelectedOffer(o)}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base font-semibold">{o.name}</CardTitle>
                     {o.city && <p className="text-xs text-muted-foreground">{o.city}</p>}
@@ -506,6 +513,9 @@ export default function AgentDashboard() {
                         Prowizja: {getCommission(o)}
                       </Badge>
                     </div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Kliknij, aby zobaczyć pliki i linki
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -634,6 +644,14 @@ export default function AgentDashboard() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Offer attachments dialog (read-only for agents) */}
+        <OfferAttachmentsDialog
+          offer={selectedOffer}
+          open={!!selectedOffer}
+          onOpenChange={(o) => !o && setSelectedOffer(null)}
+          readOnly
+        />
       </div>
     </AppShell>
   );
