@@ -312,6 +312,9 @@ export default function Offers() {
                               <Button variant="ghost" size="sm" onClick={() => toggleActive(o)} className="h-8 px-2 text-xs">
                                 {o.is_active ? "Wyłącz" : "Włącz"}
                               </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(o)} className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Usuń ofertę">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </TableCell>
                         )}
