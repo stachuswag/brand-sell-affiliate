@@ -103,6 +103,15 @@ interface PartnerOffer {
   submitted_by_partner_id?: string | null;
 }
 
+interface SubPartner {
+  id: string;
+  name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  created_at: string;
+}
+
 const statusConfig: Record<string, { label: string; className: string }> = {
   new: { label: "Nowy", className: "bg-blue-50 text-blue-700 border-blue-200" },
   in_progress: { label: "W toku", className: "bg-yellow-50 text-yellow-700 border-yellow-200" },
