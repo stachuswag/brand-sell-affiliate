@@ -63,6 +63,7 @@ interface Offer {
   commission_amount: number | null;
   is_active: boolean;
   created_at: string;
+  submitted_by_partner_id: string | null;
 }
 
 const emptyForm = {
