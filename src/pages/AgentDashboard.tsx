@@ -170,7 +170,14 @@ export default function AgentDashboard() {
   });
   const [savingOffer, setSavingOffer] = useState(false);
 
-  useEffect(() => {
+  // Sub-partners
+  const [subPartners, setSubPartners] = useState<SubPartner[]>([]);
+  const [subPartnerOpen, setSubPartnerOpen] = useState(false);
+  const [subPartnerForm, setSubPartnerForm] = useState({ name: "", contact_person: "", email: "", phone: "" });
+  const [savingSubPartner, setSavingSubPartner] = useState(false);
+
+  // Delete contact
+  const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
     if (!user) return;
     loadAgentData();
   }, [user]);
