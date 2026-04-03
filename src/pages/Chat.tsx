@@ -783,10 +783,12 @@ export default function Chat() {
             </form>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center flex-col gap-4 text-center">
-            <MessageSquare className="h-16 w-16 text-muted-foreground/30" />
-            <p className="text-lg font-semibold text-foreground">Wybierz kanał lub rozmowę</p>
-            <p className="text-sm text-muted-foreground">Kliknij na kanał po lewej aby zacząć pisać</p>
+          <div className="flex-1 flex items-center justify-center flex-col gap-3 text-center p-8">
+            <div className="h-20 w-20 rounded-2xl bg-primary/5 flex items-center justify-center mb-2">
+              <MessageSquare className="h-10 w-10 text-primary/40" />
+            </div>
+            <p className="text-lg font-semibold text-foreground">Wybierz rozmowę</p>
+            <p className="text-sm text-muted-foreground max-w-xs">Kliknij na kanał lub osobę po lewej, aby rozpocząć konwersację</p>
           </div>
         )}
       </div>
