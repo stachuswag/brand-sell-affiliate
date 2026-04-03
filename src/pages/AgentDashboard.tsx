@@ -572,7 +572,12 @@ export default function AgentDashboard() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground">
-                                {c.affiliate_links?.property_name ?? c.affiliate_links?.tracking_code ?? "—"}
+                                <div className="flex items-center gap-1.5">
+                                  {c.affiliate_links?.tracking_code?.endsWith("-MAN") && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-200 bg-orange-50 text-orange-700">Ręcznie</Badge>
+                                  )}
+                                  {c.affiliate_links?.property_name ?? c.affiliate_links?.tracking_code ?? "—"}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${sc.className}`}>
