@@ -279,8 +279,10 @@ export default function Offers() {
                     {filtered.map((o) => (
                       <TableRow key={o.id}>
                         <TableCell>
-                          <div className="font-medium">{o.name}</div>
-                          {o.address && <div className="text-xs text-muted-foreground mt-0.5">{o.address}</div>}
+                          <button onClick={() => setAttachmentsOffer(o)} className="text-left hover:underline cursor-pointer">
+                            <div className="font-medium">{o.name}</div>
+                            {o.address && <div className="text-xs text-muted-foreground mt-0.5">{o.address}</div>}
+                          </button>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{o.city ?? "—"}</TableCell>
                         <TableCell>
