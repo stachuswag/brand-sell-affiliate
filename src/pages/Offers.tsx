@@ -281,7 +281,14 @@ export default function Offers() {
                       <TableRow key={o.id}>
                         <TableCell>
                           <button onClick={() => setAttachmentsOffer(o)} className="text-left hover:underline cursor-pointer">
-                            <div className="font-medium">{o.name}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{o.name}</span>
+                              {o.submitted_by_partner_id && (
+                                <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium bg-orange-50 text-orange-700 border-orange-200">
+                                  Partner
+                                </span>
+                              )}
+                            </div>
                             {o.address && <div className="text-xs text-muted-foreground mt-0.5">{o.address}</div>}
                           </button>
                         </TableCell>
