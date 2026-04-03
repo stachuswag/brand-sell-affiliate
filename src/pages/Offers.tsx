@@ -202,6 +202,16 @@ export default function Offers() {
     fetchOffers();
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await supabase.from("partner_offers").delete().eq("offer_id", deleteTarget.id);
+    const { error } = await supabase.from("offers").delete().eq("id", deleteTarget.id);
+    if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    else toast({ title: "Oferta usunięta" });
+    setDeleteTarget(null);
+    fetchOffers();
+  };
+
   const getCommissionDisplay = (o: Offer) => {
     if (o.commission_type === "amount" && o.commission_amount != null) return fmt(o.commission_amount);
     if (o.commission_percent != null) return `${o.commission_percent}%`;
