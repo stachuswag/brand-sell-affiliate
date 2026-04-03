@@ -100,12 +100,24 @@ export default function Chat() {
     if (!user) return;
     const [{ data: profiles }, { data: partnerAgents }, { data: roles }] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, email"),
-      supabase.from("partners").select("agent_user_id, name").not("agent_user_id", "is", null),
-      supabase.from("user_roles").select("user_id"),
+      supabase.from("partners").select("agent_user_id, name").eq("is_active", true).not("agent_user_id", "is", null),
+      supabase.from("user_roles").select("user_id, role"),
     ]);
 
     // Only keep users that have an active role entry
-    const activeUserIds = new Set((roles ?? []).map((r) => r.user_id));
+    // For agents, also check that their partner is active
+    const agentUserIds = new Set(
+      (partnerAgents ?? []).filter((p) => p.agent_user_id).map((p) => p.agent_user_id)
+    );
+    const activeUserIds = new Set(
+      (roles ?? [])
+        .filter((r) => {
+          // If user is an agent, only include if they're linked to an active partner
+          if (r.role === 'agent') return agentUserIds.has(r.user_id);
+          return true;
+        })
+        .map((r) => r.user_id)
+    );
 
     const agentNameMap = new Map(
       (partnerAgents ?? []).map((p) => [p.agent_user_id, p.name])
