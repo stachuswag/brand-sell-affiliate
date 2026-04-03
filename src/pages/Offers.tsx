@@ -94,7 +94,39 @@ export default function Offers() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOffers(); }, []);
+  const fetchPartners = async () => {
+    const { data } = await supabase.from("partners").select("id, name").eq("is_active", true).order("name");
+    if (data) setAllPartners(data);
+  };
+
+  useEffect(() => { fetchOffers(); fetchPartners(); }, []);
+
+  const openPartnerAssign = async (o: Offer) => {
+    setPartnerDialogOffer(o);
+    const { data } = await supabase.from("partner_offers").select("partner_id").eq("offer_id", o.id);
+    setAssignedPartnerIds(data?.map((r) => r.partner_id) ?? []);
+  };
+
+  const togglePartner = (pid: string) => {
+    setAssignedPartnerIds((prev) =>
+      prev.includes(pid) ? prev.filter((id) => id !== pid) : [...prev, pid]
+    );
+  };
+
+  const savePartnerAssignment = async () => {
+    if (!partnerDialogOffer) return;
+    setSavingPartners(true);
+    const offerId = partnerDialogOffer.id;
+    await supabase.from("partner_offers").delete().eq("offer_id", offerId);
+    if (assignedPartnerIds.length > 0) {
+      await supabase.from("partner_offers").insert(
+        assignedPartnerIds.map((pid) => ({ partner_id: pid, offer_id: offerId }))
+      );
+    }
+    toast({ title: "Partnerzy przypisani" });
+    setSavingPartners(false);
+    setPartnerDialogOffer(null);
+  };
 
   const openCreate = () => {
     setEditing(null);
