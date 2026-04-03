@@ -399,6 +399,37 @@ export default function Offers() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Partner assignment dialog */}
+        <Dialog open={!!partnerDialogOffer} onOpenChange={(o) => !o && setPartnerDialogOffer(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Przypisz partnerów do oferty</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">{partnerDialogOffer?.name}</p>
+            {allPartners.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Brak aktywnych partnerów.</p>
+            ) : (
+              <div className="max-h-60 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                {allPartners.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
+                    <Checkbox
+                      checked={assignedPartnerIds.includes(p.id)}
+                      onCheckedChange={() => togglePartner(p.id)}
+                    />
+                    <span>{p.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPartnerDialogOffer(null)}>Anuluj</Button>
+              <Button onClick={savePartnerAssignment} disabled={savingPartners}>
+                {savingPartners ? "Zapisywanie..." : "Zapisz"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
   );
