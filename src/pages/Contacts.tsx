@@ -288,7 +288,14 @@ export default function Contacts() {
                       const tx = transactions.find((t) => t.contact_id === c.id);
                       return (
                         <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(c)}>
-                          <TableCell className="font-medium">{c.full_name}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-1.5">
+                              {c.full_name}
+                              {c.affiliate_links?.tracking_code?.endsWith("-MAN") && (
+                                <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 text-orange-700 px-1.5 py-0 text-[10px] font-medium">Ręcznie</span>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="text-sm space-y-0.5">
                               {c.email && <div className="text-muted-foreground">{c.email}</div>}
