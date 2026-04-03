@@ -493,7 +493,11 @@ export default function AgentDashboard() {
           <TabsContent value="offers">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {offers.map((o) => (
-                <Card key={o.id} className="overflow-hidden">
+                <Card
+                  key={o.id}
+                  className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+                  onClick={() => setSelectedOffer(o)}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base font-semibold">{o.name}</CardTitle>
                     {o.city && <p className="text-xs text-muted-foreground">{o.city}</p>}
@@ -508,6 +512,9 @@ export default function AgentDashboard() {
                         Prowizja: {getCommission(o)}
                       </Badge>
                     </div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Kliknij, aby zobaczyć pliki i linki
+                    </p>
                   </CardContent>
                 </Card>
               ))}
