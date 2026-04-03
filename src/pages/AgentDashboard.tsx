@@ -644,6 +644,14 @@ export default function AgentDashboard() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Offer attachments dialog (read-only for agents) */}
+        <OfferAttachmentsDialog
+          offer={selectedOffer}
+          open={!!selectedOffer}
+          onOpenChange={(o) => !o && setSelectedOffer(null)}
+          readOnly
+        />
       </div>
     </AppShell>
   );
