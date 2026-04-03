@@ -40,6 +40,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
