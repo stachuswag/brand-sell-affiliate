@@ -80,6 +80,10 @@ export default function Offers() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [filterActive, setFilterActive] = useState("all");
+  const [allPartners, setAllPartners] = useState<Partner[]>([]);
+  const [partnerDialogOffer, setPartnerDialogOffer] = useState<Offer | null>(null);
+  const [assignedPartnerIds, setAssignedPartnerIds] = useState<string[]>([]);
+  const [savingPartners, setSavingPartners] = useState(false);
 
   const fetchOffers = async () => {
     const { data } = await supabase
