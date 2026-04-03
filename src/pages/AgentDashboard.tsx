@@ -103,6 +103,7 @@ export default function AgentDashboard() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   // Add contact dialog
   const [contactOpen, setContactOpen] = useState(false);
