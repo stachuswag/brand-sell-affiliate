@@ -42,6 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
 
 interface Partner {
   id: string;
