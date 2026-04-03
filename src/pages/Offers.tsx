@@ -479,6 +479,13 @@ export default function Offers() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Offer attachments dialog */}
+        <OfferAttachmentsDialog
+          offer={attachmentsOffer}
+          open={!!attachmentsOffer}
+          onOpenChange={(o) => !o && setAttachmentsOffer(null)}
+        />
       </div>
     </AppShell>
   );
