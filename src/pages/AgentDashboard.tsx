@@ -177,14 +177,25 @@ export default function AgentDashboard() {
       if (contactsData) setContacts(contactsData as Contact[]);
     }
 
-    // Load active offers
-    const { data: offersData } = await supabase
-      .from("offers")
-      .select("id, name, city, address, price, commission_type, commission_percent, commission_amount")
-      .eq("is_active", true)
-      .order("name");
+    // Load offers assigned to this partner
+    const { data: assignedOfferIds } = await supabase
+      .from("partner_offers")
+      .select("offer_id")
+      .eq("partner_id", pid);
 
-    if (offersData) setOffers(offersData as Offer[]);
+    const offerIds = assignedOfferIds?.map((r) => r.offer_id) ?? [];
+
+    if (offerIds.length > 0) {
+      const { data: offersData } = await supabase
+        .from("offers")
+        .select("id, name, city, address, price, commission_type, commission_percent, commission_amount")
+        .in("id", offerIds)
+        .eq("is_active", true)
+        .order("name");
+      if (offersData) setOffers(offersData as Offer[]);
+    } else {
+      setOffers([]);
+    }
 
     setLoading(false);
   };
