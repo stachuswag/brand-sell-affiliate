@@ -664,6 +664,17 @@ export default function AgentDashboard() {
                               <TableCell className="text-sm text-muted-foreground">
                                 {format(new Date(c.created_at), "d MMM yyyy", { locale: pl })}
                               </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeleteContact(c)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="Usuń klienta"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           );
                         })}
