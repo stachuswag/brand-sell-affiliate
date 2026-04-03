@@ -140,19 +140,34 @@ export default function Partners() {
     if (!form.name.trim()) return;
     setSaving(true);
 
+    let partnerId = editing?.id;
+
     if (editing) {
       const { error } = await supabase
         .from("partners")
         .update({ name: form.name, contact_person: form.contact_person || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null })
         .eq("id", editing.id);
-      if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
+      if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       else toast({ title: "Zaktualizowano partnera" });
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("partners")
-        .insert({ name: form.name, contact_person: form.contact_person || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null });
-      if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
-      else toast({ title: "Dodano partnera" });
+        .insert({ name: form.name, contact_person: form.contact_person || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null })
+        .select("id")
+        .single();
+      if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
+      partnerId = data.id;
+      toast({ title: "Dodano partnera" });
+    }
+
+    // Sync partner_offers
+    if (partnerId) {
+      await supabase.from("partner_offers").delete().eq("partner_id", partnerId);
+      if (selectedOfferIds.length > 0) {
+        await supabase.from("partner_offers").insert(
+          selectedOfferIds.map((oid) => ({ partner_id: partnerId!, offer_id: oid }))
+        );
+      }
     }
 
     setSaving(false);
