@@ -97,7 +97,17 @@ export default function Partners() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPartners(); }, []);
+  const fetchOffers = async () => {
+    const { data } = await supabase.from("offers").select("id, name, city").eq("is_active", true).order("name");
+    if (data) setAllOffers(data);
+  };
+
+  const fetchPartnerOffers = async (partnerId: string) => {
+    const { data } = await supabase.from("partner_offers").select("offer_id").eq("partner_id", partnerId);
+    setSelectedOfferIds(data?.map((r) => r.offer_id) ?? []);
+  };
+
+  useEffect(() => { fetchPartners(); fetchOffers(); }, []);
 
   const openCreate = () => {
     setEditing(null);
