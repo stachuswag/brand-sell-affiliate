@@ -259,6 +259,15 @@ export default function AgentDashboard() {
 
     setPartnerOffers((myOffers ?? []) as PartnerOffer[]);
 
+    // Load sub-partners
+    const { data: subData } = await supabase
+      .from("partners")
+      .select("id, name, contact_person, email, phone, created_at")
+      .eq("parent_partner_id", pid)
+      .order("created_at", { ascending: false });
+
+    setSubPartners((subData ?? []) as SubPartner[]);
+
     setLoading(false);
   };
 
