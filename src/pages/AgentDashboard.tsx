@@ -531,6 +531,7 @@ export default function AgentDashboard() {
             <TabsTrigger value="contacts">Klienci ({contacts.length})</TabsTrigger>
             <TabsTrigger value="offers">Oferty ({offers.length})</TabsTrigger>
             <TabsTrigger value="my-offers">Moje oferty ({partnerOffers.length})</TabsTrigger>
+            <TabsTrigger value="sub-partners">Moi partnerzy ({subPartners.length})</TabsTrigger>
           </TabsList>
 
           {/* LINKS TAB */}
