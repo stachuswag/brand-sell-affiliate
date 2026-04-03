@@ -398,6 +398,42 @@ export default function AgentDashboard() {
     setSavingOffer(false);
   };
 
+  const handleDeleteContact = async () => {
+    if (!deleteContact) return;
+    const { error } = await supabase.from("contacts").delete().eq("id", deleteContact.id);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Klient usunięty" });
+      loadAgentData();
+    }
+    setDeleteContact(null);
+  };
+
+  const handleAddSubPartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subPartnerForm.name.trim() || !partnerId) return;
+    setSavingSubPartner(true);
+
+    const { error } = await supabase.from("partners").insert({
+      name: subPartnerForm.name,
+      contact_person: subPartnerForm.contact_person || null,
+      email: subPartnerForm.email || null,
+      phone: subPartnerForm.phone || null,
+      parent_partner_id: partnerId,
+    });
+
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Sub-partner dodany!" });
+      setSubPartnerOpen(false);
+      setSubPartnerForm({ name: "", contact_person: "", email: "", phone: "" });
+      loadAgentData();
+    }
+    setSavingSubPartner(false);
+  };
+
   const fmt = (n: number) =>
     new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(n);
 
