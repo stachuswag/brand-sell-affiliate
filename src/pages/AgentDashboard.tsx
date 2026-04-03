@@ -42,6 +42,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 
