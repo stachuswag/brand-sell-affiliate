@@ -285,6 +285,9 @@ export default function Offers() {
                               <Button variant="ghost" size="sm" onClick={() => openEdit(o)} className="h-8 w-8 p-0">
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
+                              <Button variant="ghost" size="sm" onClick={() => openPartnerAssign(o)} className="h-8 w-8 p-0" title="Przypisz partnerów">
+                                <Users className="h-3.5 w-3.5" />
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => toggleActive(o)} className="h-8 px-2 text-xs">
                                 {o.is_active ? "Wyłącz" : "Włącz"}
                               </Button>
