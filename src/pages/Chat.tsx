@@ -403,6 +403,7 @@ export default function Chat() {
 
   // ---- Create DM ----
   const createDM = async (targetUserId: string) => {
+    // Find existing direct channel between these two users
     const { data: myMemberships } = await supabase
       .from("chat_channel_members")
       .select("channel_id")
@@ -417,34 +418,41 @@ export default function Chat() {
         .in("channel_id", myIds);
 
       for (const { channel_id } of shared ?? []) {
-        // Check if it's a direct channel
         const { data: chanData } = await supabase
           .from("chat_channels")
           .select("*")
           .eq("id", channel_id)
           .eq("type", "direct")
           .maybeSingle();
-        if (chanData) {
-          // Reopen if it was closed
-          await supabase
-            .from("chat_channel_members")
-            .update({ closed_at: null })
-            .eq("channel_id", channel_id)
-            .eq("user_id", user!.id);
-          setDmOpen(false);
-          await loadChannels();
-          const profile = allUsers.find((u) => u.user_id === targetUserId);
-          selectChannel({
-            ...chanData,
-            type: "direct",
-            other_user_name: profile?.full_name ?? profile?.email ?? "Nieznany",
-            closed_at: null,
-          });
-          return;
-        }
+        if (!chanData) continue;
+
+        // Verify it's truly a 1:1 DM (exactly 2 members)
+        const { count } = await supabase
+          .from("chat_channel_members")
+          .select("id", { count: "exact", head: true })
+          .eq("channel_id", channel_id);
+        if (count !== 2) continue;
+
+        // Found existing DM — reopen if closed and navigate to it
+        await supabase
+          .from("chat_channel_members")
+          .update({ closed_at: null })
+          .eq("channel_id", channel_id)
+          .eq("user_id", user!.id);
+        setDmOpen(false);
+        await loadChannels();
+        const profile = allUsers.find((u) => u.user_id === targetUserId);
+        selectChannel({
+          ...chanData,
+          type: "direct",
+          other_user_name: profile?.full_name ?? profile?.email ?? "Nieznany",
+          closed_at: null,
+        });
+        return;
       }
     }
 
+    // No existing DM found — create new one
     const { data: newChan, error } = await supabase
       .from("chat_channels")
       .insert({ type: "direct", created_by: user!.id })
