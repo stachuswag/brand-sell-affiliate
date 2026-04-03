@@ -96,6 +96,7 @@ export default function Offers() {
   const [assignedPartnerIds, setAssignedPartnerIds] = useState<string[]>([]);
   const [savingPartners, setSavingPartners] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Offer | null>(null);
+  const [attachmentsOffer, setAttachmentsOffer] = useState<Offer | null>(null);
 
   const fetchOffers = async () => {
     const { data } = await supabase
