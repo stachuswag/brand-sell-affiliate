@@ -178,6 +178,8 @@ export default function AgentDashboard() {
 
   // Delete contact
   const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
+
+  useEffect(() => {
     if (!user) return;
     loadAgentData();
   }, [user]);
