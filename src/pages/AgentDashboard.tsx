@@ -824,11 +824,45 @@ export default function AgentDashboard() {
                                 variant="outline"
                                 size="sm"
                                 className="gap-1.5 h-8 text-xs"
-                                asChild
+                                onClick={async () => {
+                                  const path = decodeURIComponent(f.file_url.split("/partner-files/")[1] ?? "");
+
+                                  if (!path) {
+                                    toast({
+                                      title: "Błąd pobierania",
+                                      description: "Nie udało się odczytać ścieżki pliku.",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+
+                                  const { data, error } = await supabase.storage
+                                    .from("partner-files")
+                                    .download(path);
+
+                                  if (error || !data) {
+                                    toast({
+                                      title: "Błąd pobierania",
+                                      description: "Nie udało się pobrać pliku.",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+
+                                  const downloadUrl = window.URL.createObjectURL(data);
+                                  const link = document.createElement("a");
+                                  link.href = downloadUrl;
+                                  link.download = f.file_name;
+                                  document.body.appendChild(link);
+                                  link.click();
+
+                                  setTimeout(() => {
+                                    link.remove();
+                                    window.URL.revokeObjectURL(downloadUrl);
+                                  }, 1000);
+                                }}
                               >
-                                <a href={f.file_url} target="_blank" rel="noopener noreferrer" download={f.file_name}>
-                                  <Download className="h-3.5 w-3.5" /> Pobierz
-                                </a>
+                                <Download className="h-3.5 w-3.5" /> Pobierz
                               </Button>
                             </TableCell>
                           </TableRow>
