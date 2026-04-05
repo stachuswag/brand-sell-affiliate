@@ -216,9 +216,18 @@ export default function Partners() {
     setOnboardPassword("");
   };
 
+  const generatePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
+    return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
   const openOnboard = (p: Partner) => {
     setOnboardPartner(p);
     resetOnboardForm();
+    // Auto-fill password if partner has account but onboarding not sent yet
+    if (p.agent_user_id && p.agent_status !== "approved") {
+      setOnboardPassword(generatePassword());
+    }
     setOnboardOpen(true);
   };
 
@@ -237,41 +246,67 @@ export default function Partners() {
       if (onboardProjectId) payload.project_id = onboardProjectId;
       if (onboardOfferId) payload.offer_id = onboardOfferId;
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
-      // If onboard type and partner has no account yet — create agent account automatically
+      // Handle agent account: create if missing, reset password if existing
       let finalPassword = onboardPassword;
-      if (onboardEmailType === "onboard" && !onboardPartner.agent_user_id) {
+      if (onboardEmailType === "onboard") {
         const loginEmail = onboardPartner.login_email || onboardPartner.email;
         if (!loginEmail) {
           toast({ title: "Błąd", description: "Partner nie ma przypisanego loginu ani emaila.", variant: "destructive" });
           setOnboarding(false);
           return;
         }
-        // Auto-generate password if not provided
         if (!finalPassword) {
-          finalPassword = Math.random().toString(36).slice(2, 6).toUpperCase() + Math.random().toString(36).slice(2, 6) + "!";
+          finalPassword = generatePassword();
         }
-        try {
-          const agentRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-            body: JSON.stringify({
-              action: "create",
-              partner_id: onboardPartner.id,
-              partner_name: onboardPartner.name,
-              email: loginEmail,
-              password: finalPassword,
-            }),
-          });
-          const agentResult = await agentRes.json();
-          if (!agentRes.ok || agentResult.error) {
-            toast({ title: "Błąd tworzenia konta", description: agentResult.error, variant: "destructive" });
+
+        if (!onboardPartner.agent_user_id) {
+          // No account — create one
+          try {
+            const agentRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+              body: JSON.stringify({
+                action: "create",
+                partner_id: onboardPartner.id,
+                partner_name: onboardPartner.name,
+                email: loginEmail,
+                password: finalPassword,
+              }),
+            });
+            const agentResult = await agentRes.json();
+            if (!agentRes.ok || agentResult.error) {
+              toast({ title: "Błąd tworzenia konta", description: agentResult.error, variant: "destructive" });
+              setOnboarding(false);
+              return;
+            }
+          } catch {
+            toast({ title: "Błąd tworzenia konta agenta", variant: "destructive" });
             setOnboarding(false);
             return;
           }
-        } catch {
-          toast({ title: "Błąd tworzenia konta agenta", variant: "destructive" });
-          setOnboarding(false);
-          return;
+        } else {
+          // Account exists — reset password so we can send it in the email
+          try {
+            const resetRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+              body: JSON.stringify({
+                action: "reset_password",
+                user_id: onboardPartner.agent_user_id,
+                password: finalPassword,
+              }),
+            });
+            const resetResult = await resetRes.json();
+            if (!resetRes.ok || resetResult.error) {
+              toast({ title: "Błąd resetu hasła", description: resetResult.error, variant: "destructive" });
+              setOnboarding(false);
+              return;
+            }
+          } catch {
+            toast({ title: "Błąd resetu hasła agenta", variant: "destructive" });
+            setOnboarding(false);
+            return;
+          }
         }
       }
 
