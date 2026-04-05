@@ -237,13 +237,18 @@ export default function Partners() {
       if (onboardProjectId) payload.project_id = onboardProjectId;
       if (onboardOfferId) payload.offer_id = onboardOfferId;
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
-      // If onboard type, partner has no account yet, and password is provided — create agent account first
-      if (onboardEmailType === "onboard" && onboardPassword && !onboardPartner.agent_user_id) {
+      // If onboard type and partner has no account yet — create agent account automatically
+      let finalPassword = onboardPassword;
+      if (onboardEmailType === "onboard" && !onboardPartner.agent_user_id) {
         const loginEmail = onboardPartner.login_email || onboardPartner.email;
         if (!loginEmail) {
           toast({ title: "Błąd", description: "Partner nie ma przypisanego loginu ani emaila.", variant: "destructive" });
           setOnboarding(false);
           return;
+        }
+        // Auto-generate password if not provided
+        if (!finalPassword) {
+          finalPassword = Math.random().toString(36).slice(2, 6).toUpperCase() + Math.random().toString(36).slice(2, 6) + "!";
         }
         try {
           const agentRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
@@ -254,7 +259,7 @@ export default function Partners() {
               partner_id: onboardPartner.id,
               partner_name: onboardPartner.name,
               email: loginEmail,
-              password: onboardPassword,
+              password: finalPassword,
             }),
           });
           const agentResult = await agentRes.json();
@@ -273,7 +278,7 @@ export default function Partners() {
       const loginEmailForMail = onboardPartner.login_email || onboardPartner.email;
       if (onboardEmailType === "onboard" && loginEmailForMail) {
         payload.login_email = loginEmailForMail;
-        if (onboardPassword) payload.login_password = onboardPassword;
+        if (finalPassword) payload.login_password = finalPassword;
       }
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`, {
@@ -541,14 +546,14 @@ export default function Partners() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu (do wysłania w mailu)</Label>
+                    <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu (opcjonalne)</Label>
                     <Input
                       type="text"
                       value={onboardPassword}
                       onChange={(e) => setOnboardPassword(e.target.value)}
-                      placeholder="Wpisz hasło które otrzyma partner..."
+                      placeholder="Zostaw puste — wygeneruje się automatycznie"
                     />
-                    <p className="text-xs text-muted-foreground">Login = {onboardPartner?.login_email || onboardPartner?.email || "brak emaila"}. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
+                    <p className="text-xs text-muted-foreground">Login = {onboardPartner?.login_email || onboardPartner?.email || "brak emaila"}. Login i hasło zostaną automatycznie wysłane w mailu powitalnym.</p>
                   </div>
                 </div>
               )}
