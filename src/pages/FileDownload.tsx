@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 
 interface FileRecord {
   id: string;
