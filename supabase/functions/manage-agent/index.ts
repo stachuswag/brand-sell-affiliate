@@ -166,39 +166,86 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Brakuje danych do utworzenia konta." }, 400);
       }
 
+      const normalizedEmail = String(email).trim().toLowerCase();
+
+      const { data: partnerData, error: partnerLookupError } = await supabaseAdmin
+        .from("partners")
+        .select("id, name, agent_user_id")
+        .eq("id", partner_id)
+        .maybeSingle();
+
+      if (partnerLookupError) throw partnerLookupError;
+      if (!partnerData) {
+        return jsonResponse({ error: "Nie znaleziono partnera." }, 404);
+      }
+
+      if (partnerData.agent_user_id) {
+        return jsonResponse({ success: true, user_id: partnerData.agent_user_id, already_exists: true });
+      }
+
+      const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      if (listError) throw listError;
+
+      const existing = listData.users.find((existingUser) => existingUser.email?.toLowerCase() === normalizedEmail);
       let userId: string;
 
-      const { data: authData, error: authErrorCreate } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: partner_name },
-      });
+      if (existing) {
+        const { data: linkedPartner, error: linkedPartnerError } = await supabaseAdmin
+          .from("partners")
+          .select("id, name")
+          .eq("agent_user_id", existing.id)
+          .maybeSingle();
 
-      if (authErrorCreate) {
-        if (authErrorCreate.message?.includes("already been registered") || authErrorCreate.message?.includes("already exists")) {
-          const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-          if (listError) throw listError;
-          const existing = listData.users.find((existingUser) => existingUser.email === email);
-          if (!existing) throw new Error("Użytkownik z tym emailem już istnieje, ale nie można go znaleźć.");
-          userId = existing.id;
-          await supabaseAdmin.auth.admin.updateUserById(userId, { password });
-        } else {
-          throw authErrorCreate;
+        if (linkedPartnerError) throw linkedPartnerError;
+
+        const { data: existingRoles, error: existingRolesError } = await supabaseAdmin
+          .from("user_roles")
+          .select("role, partner_id")
+          .eq("user_id", existing.id);
+
+        if (existingRolesError) throw existingRolesError;
+
+        const linkedToOtherPartner = Boolean(linkedPartner && linkedPartner.id !== partner_id);
+        const roleAssignedToOtherPartner = (existingRoles ?? []).some(
+          (roleRow) => roleRow.role === "agent" && roleRow.partner_id && roleRow.partner_id !== partner_id,
+        );
+        const hasNonAgentRole = (existingRoles ?? []).some((roleRow) => roleRow.role !== "agent");
+
+        if (linkedToOtherPartner || roleAssignedToOtherPartner || hasNonAgentRole) {
+          return jsonResponse(
+            {
+              error: linkedPartner
+                ? `Ten login jest już przypisany do partnera ${linkedPartner.name}. Każdy partner musi mieć osobny email logowania.`
+                : "Ten login jest już używany przez inne konto. Każdy partner musi mieć osobny email logowania.",
+            },
+            409,
+          );
         }
+
+        userId = existing.id;
+        const { error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password,
+          user_metadata: { full_name: partner_name },
+        });
+
+        if (updateUserError) throw updateUserError;
       } else {
+        const { data: authData, error: authErrorCreate } = await supabaseAdmin.auth.admin.createUser({
+          email: normalizedEmail,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: partner_name },
+        });
+
+        if (authErrorCreate) throw authErrorCreate;
         userId = authData.user.id;
       }
 
-      await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
-        .insert({ user_id: userId, role: "agent", partner_id });
+        .upsert({ user_id: userId, role: "agent", partner_id }, { onConflict: "user_id,role" });
 
       if (roleError) throw roleError;
-
-      // Clear any existing agent_user_id references to avoid unique constraint violation
-      await supabaseAdmin.from("partners").update({ agent_user_id: null }).eq("agent_user_id", userId);
 
       const { error: partnerError } = await supabaseAdmin
         .from("partners")
