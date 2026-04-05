@@ -21,7 +21,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, Eye, EyeOff, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
@@ -361,9 +361,34 @@ export default function Partners() {
               <div className="space-y-2"><Label>Nazwa firmy *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
               <div className="space-y-2"><Label>Osoba kontaktowa</Label><Input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Email {!editing && "*"}</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required={!editing} /></div>
                 <div className="space-y-2"><Label>Telefon</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               </div>
+              {!editing && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu *</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      required
+                      placeholder="Min. 6 znaków"
+                      minLength={6}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Login i hasło zostaną wysłane w mailu onboardingowym.</p>
+                </div>
+              )}
               <div className="space-y-2"><Label>Notatki</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} /></div>
               {allOffers.length > 0 && (
                 <div className="space-y-2">
