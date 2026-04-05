@@ -284,6 +284,15 @@ export default function AgentDashboard() {
 
     setSubPartners((subData ?? []) as SubPartner[]);
 
+    // Load partner files
+    const { data: filesData } = await supabase
+      .from("partner_files")
+      .select("id, subject, file_name, file_url, file_size, file_type, created_at")
+      .eq("partner_id", pid)
+      .order("created_at", { ascending: false });
+
+    setPartnerFiles((filesData ?? []) as PartnerFile[]);
+
     setLoading(false);
   };
 
