@@ -374,17 +374,9 @@ export default function Partners() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Webhook Make.com (opcjonalnie)</Label>
-                <Input
-                  value={onboardWebhookUrl}
-                  onChange={(e) => setOnboardWebhookUrl(e.target.value)}
-                  placeholder="https://hook.eu2.make.com/..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Jeśli podasz URL, Make.com otrzyma dane agenta, projekt, linki afiliacyjne i materiały.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Po kliknięciu "Wyślij" partner otrzyma spersonalizowanego maila z danymi projektu, linkami afiliacyjnymi i materiałami.
+              </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOnboardOpen(false)}>Anuluj</Button>
                 <Button onClick={handleOnboard} disabled={onboarding || !onboardProjectId} className="gap-1.5">
