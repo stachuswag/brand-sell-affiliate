@@ -238,7 +238,13 @@ export default function Partners() {
       if (onboardOfferId) payload.offer_id = onboardOfferId;
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
       // If onboard type, partner has no account yet, and password is provided — create agent account first
-      if (onboardEmailType === "onboard" && onboardPartner.email && onboardPassword && !onboardPartner.agent_user_id) {
+      if (onboardEmailType === "onboard" && onboardPassword && !onboardPartner.agent_user_id) {
+        const loginEmail = onboardPartner.login_email || onboardPartner.email;
+        if (!loginEmail) {
+          toast({ title: "Błąd", description: "Partner nie ma przypisanego loginu ani emaila.", variant: "destructive" });
+          setOnboarding(false);
+          return;
+        }
         try {
           const agentRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
             method: "POST",
@@ -247,7 +253,7 @@ export default function Partners() {
               action: "create",
               partner_id: onboardPartner.id,
               partner_name: onboardPartner.name,
-              email: onboardPartner.email,
+              email: loginEmail,
               password: onboardPassword,
             }),
           });
@@ -264,8 +270,9 @@ export default function Partners() {
         }
       }
 
-      if (onboardEmailType === "onboard" && onboardPartner.email) {
-        payload.login_email = onboardPartner.email;
+      const loginEmailForMail = onboardPartner.login_email || onboardPartner.email;
+      if (onboardEmailType === "onboard" && loginEmailForMail) {
+        payload.login_email = loginEmailForMail;
         if (onboardPassword) payload.login_password = onboardPassword;
       }
 
