@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
 </body></html>`;
 
     return new Response(
-      JSON.stringify({ email_body: emailBody, email_subject: `${subject} — Brand and Sell` }),
+      JSON.stringify({ email_body: emailBody, email_subject: "Nowe pliki — Brand and Sell" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

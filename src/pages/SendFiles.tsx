@@ -133,7 +133,7 @@ export default function SendFiles() {
     }
     return {
       email_body: `<p>Przesyłam pliki dotyczące: ${subject.trim()}</p>`,
-      email_subject: `${subject.trim()} — Brand and Sell`,
+      email_subject: "Nowe pliki — Brand and Sell",
     };
   }
 
@@ -325,13 +325,13 @@ export default function SendFiles() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
-                  Temat wiadomości
+                  Kontekst wiadomości
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1.5">
                   <Label htmlFor="subject" className="text-xs text-muted-foreground">
-                    O czym są te pliki? (wymagane)
+                    O czym są te pliki? AI wygeneruje treść maila na tej podstawie (wymagane)
                   </Label>
                   <Input
                     id="subject"
