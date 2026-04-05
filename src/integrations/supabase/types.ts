@@ -26,6 +26,7 @@ export type Database = {
           link_type: Database["public"]["Enums"]["link_type"]
           offer_id: string | null
           partner_id: string
+          project_id: string | null
           property_address: string | null
           property_name: string | null
           tracking_code: string
@@ -42,6 +43,7 @@ export type Database = {
           link_type?: Database["public"]["Enums"]["link_type"]
           offer_id?: string | null
           partner_id: string
+          project_id?: string | null
           property_address?: string | null
           property_name?: string | null
           tracking_code: string
@@ -58,6 +60,7 @@ export type Database = {
           link_type?: Database["public"]["Enums"]["link_type"]
           offer_id?: string | null
           partner_id?: string
+          project_id?: string | null
           property_address?: string | null
           property_name?: string | null
           tracking_code?: string
@@ -83,6 +86,13 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -519,15 +529,58 @@ export type Database = {
           },
         ]
       }
+      partner_projects: {
+        Row: {
+          created_at: string
+          id: string
+          partner_id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          partner_id: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          partner_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_projects_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partners: {
         Row: {
+          agent_status: string | null
           agent_user_id: string | null
+          clay_enriched_at: string | null
+          clay_icebreaker: string | null
+          clay_summary: string | null
           contact_person: string | null
           created_at: string
           created_by: string | null
           email: string | null
           id: string
+          instagram_followers: number | null
+          instagram_url: string | null
           is_active: boolean
+          linkedin_url: string | null
           name: string
           notes: string | null
           parent_partner_id: string | null
@@ -535,13 +588,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agent_status?: string | null
           agent_user_id?: string | null
+          clay_enriched_at?: string | null
+          clay_icebreaker?: string | null
+          clay_summary?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
           id?: string
+          instagram_followers?: number | null
+          instagram_url?: string | null
           is_active?: boolean
+          linkedin_url?: string | null
           name: string
           notes?: string | null
           parent_partner_id?: string | null
@@ -549,13 +609,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agent_status?: string | null
           agent_user_id?: string | null
+          clay_enriched_at?: string | null
+          clay_icebreaker?: string | null
+          clay_summary?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
           id?: string
+          instagram_followers?: number | null
+          instagram_url?: string | null
           is_active?: boolean
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
           parent_partner_id?: string | null
@@ -596,6 +663,42 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          cities: string[]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          materials_folder_url: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          cities?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          materials_folder_url?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          cities?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          materials_folder_url?: string | null
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

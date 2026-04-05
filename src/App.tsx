@@ -20,6 +20,7 @@ import SendFiles from "./pages/SendFiles";
 import AgentDashboard from "./pages/AgentDashboard";
 import Agents from "./pages/Agents";
 import Chat from "./pages/Chat";
+import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             {/* Protected routes — admin/employee */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/partners" element={<ProtectedRoute><Partners /></ProtectedRoute>} />
             <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
             <Route path="/links" element={<ProtectedRoute><Links /></ProtectedRoute>} />

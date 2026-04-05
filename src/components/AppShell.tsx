@@ -32,11 +32,13 @@ import {
   MessageSquare,
   Sun,
   Moon,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const adminNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/projects", label: "Projekty", icon: Briefcase },
   { href: "/partners", label: "Partnerzy", icon: Users },
   { href: "/offers", label: "Oferty", icon: Building2 },
   { href: "/links", label: "Linki afiliacyjne", icon: Link2 },
