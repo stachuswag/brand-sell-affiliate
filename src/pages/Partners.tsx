@@ -21,7 +21,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket } from "lucide-react";
+import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
@@ -60,7 +60,9 @@ export default function Partners() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
-  
+  const [onboardOfferId, setOnboardOfferId] = useState("");
+  const [onboardEmailType, setOnboardEmailType] = useState<string>("onboard");
+  const [onboardCustomMsg, setOnboardCustomMsg] = useState("");
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
 
