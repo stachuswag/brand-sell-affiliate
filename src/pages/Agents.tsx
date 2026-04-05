@@ -58,7 +58,7 @@ export default function Agents() {
   const fetchPartners = async () => {
     const { data } = await supabase
       .from("partners")
-      .select("id, name, email, is_active, agent_user_id")
+      .select("id, name, email, login_email, is_active, agent_user_id")
       .order("name");
     if (data) setPartners(data as Partner[]);
     setLoading(false);
@@ -70,7 +70,7 @@ export default function Agents() {
 
   const openCreate = (p: Partner) => {
     setSelectedPartner(p);
-    setForm({ email: p.email ?? "", password: randomPassword() });
+    setForm({ email: p.login_email ?? p.email ?? "", password: randomPassword() });
     setShowPassword(false);
     setOpen(true);
   };
@@ -211,7 +211,7 @@ export default function Agents() {
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.name}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {p.email ?? "—"}
+                          {p.login_email ?? p.email ?? "—"}
                         </TableCell>
                         <TableCell className="text-center">
                           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${p.agent_user_id ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
