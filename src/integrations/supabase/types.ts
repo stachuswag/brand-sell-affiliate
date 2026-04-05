@@ -495,6 +495,7 @@ export type Database = {
       }
       partner_files: {
         Row: {
+          batch_token: string | null
           created_at: string
           file_name: string
           file_size: number | null
@@ -506,6 +507,7 @@ export type Database = {
           subject: string
         }
         Insert: {
+          batch_token?: string | null
           created_at?: string
           file_name: string
           file_size?: number | null
@@ -517,6 +519,7 @@ export type Database = {
           subject: string
         }
         Update: {
+          batch_token?: string | null
           created_at?: string
           file_name?: string
           file_size?: number | null
