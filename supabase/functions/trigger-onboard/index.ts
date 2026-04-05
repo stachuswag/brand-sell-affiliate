@@ -77,8 +77,7 @@ Deno.serve(async (req) => {
     const partnerName = partner.contact_person || partner.name;
     const firstName = partnerName.split(" ")[0];
 
-    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace("/rest/v1", "").replace("https://", "");
-    const appUrl = `https://${baseUrl}`;
+    const appUrl = "https://brand-sell-affiliate.lovable.app";
 
     // Fetch affiliate links for this partner
     const { data: links } = await adminClient
