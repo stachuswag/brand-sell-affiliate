@@ -37,9 +37,10 @@ interface Partner {
   linkedin_url?: string | null; instagram_url?: string | null;
   clay_icebreaker?: string | null; clay_summary?: string | null;
   clay_enriched_at?: string | null; agent_status?: string | null;
+  login_email?: string | null;
 }
 
-const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "", password: "" };
+const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "", password: "", login_email: "" };
 
 const emailTypeOptions: { value: OnboardEmailType; label: string; description: string; icon: string }[] = [
   { value: "onboard", label: "Onboarding", description: "zatwierdzenie agenta", icon: "🚀" },
@@ -123,7 +124,7 @@ export default function Partners() {
   const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setOpen(true); };
   const openEdit = async (p: Partner) => {
     setEditing(p);
-    setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "" });
+    setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "", login_email: p.login_email ?? "" });
     await fetchPartnerOffers(p.id);
     setOpen(true);
   };
@@ -139,8 +140,8 @@ export default function Partners() {
       if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       toast({ title: "Zaktualizowano partnera" });
     } else {
-      if (!form.email || !form.password) {
-        toast({ title: "Błąd", description: "Email i hasło są wymagane przy tworzeniu partnera", variant: "destructive" });
+      if (!form.login_email || !form.password) {
+        toast({ title: "Błąd", description: "Login (email do panelu) i hasło są wymagane przy tworzeniu partnera", variant: "destructive" });
         setSaving(false);
         return;
       }
@@ -148,13 +149,13 @@ export default function Partners() {
       if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       partnerId = data.id;
 
-      // Auto-create agent account
+      // Auto-create agent account using login_email
       const { data: { session } } = await supabase.auth.getSession();
       try {
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-          body: JSON.stringify({ action: "create", partner_id: partnerId, partner_name: form.name, email: form.email, password: form.password }),
+          body: JSON.stringify({ action: "create", partner_id: partnerId, partner_name: form.name, email: form.login_email, password: form.password }),
         });
         const result = await res.json();
         if (!res.ok || result.error) {
@@ -237,7 +238,13 @@ export default function Partners() {
       if (onboardOfferId) payload.offer_id = onboardOfferId;
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
       // If onboard type, partner has no account yet, and password is provided — create agent account first
-      if (onboardEmailType === "onboard" && onboardPartner.email && onboardPassword && !onboardPartner.agent_user_id) {
+      if (onboardEmailType === "onboard" && onboardPassword && !onboardPartner.agent_user_id) {
+        const loginEmail = onboardPartner.login_email || onboardPartner.email;
+        if (!loginEmail) {
+          toast({ title: "Błąd", description: "Partner nie ma przypisanego loginu ani emaila.", variant: "destructive" });
+          setOnboarding(false);
+          return;
+        }
         try {
           const agentRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
             method: "POST",
@@ -246,7 +253,7 @@ export default function Partners() {
               action: "create",
               partner_id: onboardPartner.id,
               partner_name: onboardPartner.name,
-              email: onboardPartner.email,
+              email: loginEmail,
               password: onboardPassword,
             }),
           });
@@ -263,8 +270,9 @@ export default function Partners() {
         }
       }
 
-      if (onboardEmailType === "onboard" && onboardPartner.email) {
-        payload.login_email = onboardPartner.email;
+      const loginEmailForMail = onboardPartner.login_email || onboardPartner.email;
+      if (onboardEmailType === "onboard" && loginEmailForMail) {
+        payload.login_email = loginEmailForMail;
         if (onboardPassword) payload.login_password = onboardPassword;
       }
 
@@ -395,9 +403,16 @@ export default function Partners() {
               <div className="space-y-2"><Label>Nazwa firmy *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
               <div className="space-y-2"><Label>Osoba kontaktowa</Label><Input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Email {!editing && "*"}</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required={!editing} /></div>
+                <div className="space-y-2"><Label>Email kontaktowy</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Telefon</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               </div>
+              {!editing && (
+                <div className="space-y-2">
+                  <Label>Login do panelu (email) *</Label>
+                  <Input type="email" value={form.login_email} onChange={(e) => setForm({ ...form, login_email: e.target.value })} required placeholder="agent@firma.pl" />
+                  <p className="text-xs text-muted-foreground">Osobny email logowania — może być inny niż email kontaktowy. Musi być unikalny dla każdego partnera.</p>
+                </div>
+              )}
               {!editing && (
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu *</Label>
@@ -533,7 +548,7 @@ export default function Partners() {
                       onChange={(e) => setOnboardPassword(e.target.value)}
                       placeholder="Wpisz hasło które otrzyma partner..."
                     />
-                    <p className="text-xs text-muted-foreground">Login = email partnera. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
+                    <p className="text-xs text-muted-foreground">Login = {onboardPartner?.login_email || onboardPartner?.email || "brak emaila"}. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
                   </div>
                 </div>
               )}

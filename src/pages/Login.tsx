@@ -14,6 +14,7 @@ interface Partner {
   id: string;
   name: string;
   email: string | null;
+  login_email: string | null;
   agent_user_id: string | null;
 }
 
@@ -38,7 +39,7 @@ export default function Login() {
   useEffect(() => {
     supabase
       .from("partners")
-      .select("id, name, email, agent_user_id")
+      .select("id, name, email, login_email, agent_user_id")
       .eq("is_active", true)
       .order("name")
       .then(({ data }) => {
@@ -52,7 +53,7 @@ export default function Login() {
     if (!p.agent_user_id) {
       setStep("no-account");
     } else {
-      setEmail(p.email ?? "");
+      setEmail(p.login_email ?? p.email ?? "");
       setPassword("");
       setShowPass(false);
       setStep("login");

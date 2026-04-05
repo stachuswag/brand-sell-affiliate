@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
 
       const { error: partnerError } = await supabaseAdmin
         .from("partners")
-        .update({ agent_user_id: userId })
+        .update({ agent_user_id: userId, login_email: normalizedEmail })
         .eq("id", partner_id);
 
       if (partnerError) throw partnerError;
