@@ -37,9 +37,10 @@ interface Partner {
   linkedin_url?: string | null; instagram_url?: string | null;
   clay_icebreaker?: string | null; clay_summary?: string | null;
   clay_enriched_at?: string | null; agent_status?: string | null;
+  login_email?: string | null;
 }
 
-const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "", password: "" };
+const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "", password: "", login_email: "" };
 
 const emailTypeOptions: { value: OnboardEmailType; label: string; description: string; icon: string }[] = [
   { value: "onboard", label: "Onboarding", description: "zatwierdzenie agenta", icon: "🚀" },
