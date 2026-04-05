@@ -55,6 +55,13 @@ export default function Agents() {
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
 
+  // Send welcome email dialog (after creating account)
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomePartner, setWelcomePartner] = useState<Partner | null>(null);
+  const [welcomeEmail, setWelcomeEmail] = useState("");
+  const [welcomePassword, setWelcomePassword] = useState("");
+  const [sendingWelcome, setSendingWelcome] = useState(false);
+
   const fetchPartners = async () => {
     const { data } = await supabase
       .from("partners")
@@ -104,11 +111,51 @@ export default function Agents() {
     if (!res.ok || result.error) {
       toast({ title: "Błąd", description: result.error ?? "Nieznany błąd", variant: "destructive" });
     } else {
-      toast({ title: "Konto agenta utworzone!", description: `Login: ${form.email} | Hasło: ${form.password}` });
+      toast({ title: "Konto agenta utworzone!" });
       setOpen(false);
+      // Show welcome email dialog
+      setWelcomePartner(selectedPartner);
+      setWelcomeEmail(form.email);
+      setWelcomePassword(form.password);
+      setWelcomeOpen(true);
       fetchPartners();
     }
     setSaving(false);
+  };
+
+  const handleSendWelcome = async () => {
+    if (!welcomePartner) return;
+    setSendingWelcome(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            partner_id: welcomePartner.id,
+            email_type: "onboard",
+            login_email: welcomeEmail,
+            login_password: welcomePassword,
+          }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        toast({ title: "Błąd wysyłki", description: result.error, variant: "destructive" });
+      } else {
+        toast({ title: "Mail powitalny wysłany! 🚀", description: `Na adres: ${result.email}` });
+      }
+    } catch {
+      toast({ title: "Błąd wysyłki maila", variant: "destructive" });
+    }
+    setSendingWelcome(false);
+    setWelcomeOpen(false);
   };
 
   const openReset = (p: Partner) => {
