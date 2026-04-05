@@ -104,7 +104,7 @@ export default function SendFiles() {
     addFiles(e.dataTransfer.files);
   }
 
-  async function generateEmailBody(partner: Partner, fileLinks: { name: string; url: string }[]): Promise<{ email_body: string; email_subject: string }> {
+  async function generateEmailBody(partner: Partner, fileLinks: { name: string; url: string }[], batchToken: string): Promise<{ email_body: string; email_subject: string }> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
@@ -121,6 +121,7 @@ export default function SendFiles() {
             contact_person: partner.contact_person,
             files: fileLinks,
             link: link.trim() || undefined,
+            batch_token: batchToken,
           }),
         }
       );
@@ -130,7 +131,6 @@ export default function SendFiles() {
     } catch (e) {
       console.error("Generate email error:", e);
     }
-    // Fallback
     return {
       email_body: `<p>Przesyłam pliki dotyczące: ${subject.trim()}</p>`,
       email_subject: `${subject.trim()} — Brand and Sell`,
