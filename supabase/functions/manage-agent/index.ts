@@ -209,17 +209,21 @@ Deno.serve(async (req) => {
         const roleAssignedToOtherPartner = (existingRoles ?? []).some(
           (roleRow) => roleRow.role === "agent" && roleRow.partner_id && roleRow.partner_id !== partner_id,
         );
-        const hasNonAgentRole = (existingRoles ?? []).some((roleRow) => roleRow.role !== "agent");
+        const isAdmin = (existingRoles ?? []).some((roleRow) => roleRow.role === "admin");
 
-        if (linkedToOtherPartner || roleAssignedToOtherPartner || hasNonAgentRole) {
+        if (linkedToOtherPartner || roleAssignedToOtherPartner) {
           return jsonResponse(
             {
               error: linkedPartner
                 ? `Ten login jest już przypisany do partnera ${linkedPartner.name}. Każdy partner musi mieć osobny email logowania.`
-                : "Ten login jest już używany przez inne konto. Każdy partner musi mieć osobny email logowania.",
+                : "Ten login jest już używany jako agent innego partnera.",
             },
             409,
           );
+        }
+
+        if (isAdmin) {
+          return jsonResponse({ error: "Ten email należy do konta administratora — nie można go użyć jako loginu agenta." }, 409);
         }
 
         userId = existing.id;
