@@ -20,6 +20,7 @@ import SendFiles from "./pages/SendFiles";
 import AgentDashboard from "./pages/AgentDashboard";
 import Agents from "./pages/Agents";
 import Chat from "./pages/Chat";
+import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
