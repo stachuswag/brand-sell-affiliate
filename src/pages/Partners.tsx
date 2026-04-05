@@ -546,14 +546,14 @@ export default function Partners() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu (do wysłania w mailu)</Label>
+                    <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu (opcjonalne)</Label>
                     <Input
                       type="text"
                       value={onboardPassword}
                       onChange={(e) => setOnboardPassword(e.target.value)}
-                      placeholder="Wpisz hasło które otrzyma partner..."
+                      placeholder="Zostaw puste — wygeneruje się automatycznie"
                     />
-                    <p className="text-xs text-muted-foreground">Login = {onboardPartner?.login_email || onboardPartner?.email || "brak emaila"}. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
+                    <p className="text-xs text-muted-foreground">Login = {onboardPartner?.login_email || onboardPartner?.email || "brak emaila"}. Login i hasło zostaną automatycznie wysłane w mailu powitalnym.</p>
                   </div>
                 </div>
               )}
