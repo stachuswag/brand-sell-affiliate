@@ -54,6 +54,7 @@ import {
   Package,
   Trash2,
   Users,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
@@ -109,6 +110,16 @@ interface SubPartner {
   contact_person: string | null;
   email: string | null;
   phone: string | null;
+  created_at: string;
+}
+
+interface PartnerFile {
+  id: string;
+  subject: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+  file_type: string | null;
   created_at: string;
 }
 
@@ -175,6 +186,9 @@ export default function AgentDashboard() {
   const [subPartnerOpen, setSubPartnerOpen] = useState(false);
   const [subPartnerForm, setSubPartnerForm] = useState({ name: "", contact_person: "", email: "", phone: "" });
   const [savingSubPartner, setSavingSubPartner] = useState(false);
+
+  // Partner files
+  const [partnerFiles, setPartnerFiles] = useState<PartnerFile[]>([]);
 
   // Delete contact
   const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
@@ -269,6 +283,15 @@ export default function AgentDashboard() {
       .order("created_at", { ascending: false });
 
     setSubPartners((subData ?? []) as SubPartner[]);
+
+    // Load partner files
+    const { data: filesData } = await supabase
+      .from("partner_files")
+      .select("id, subject, file_name, file_url, file_size, file_type, created_at")
+      .eq("partner_id", pid)
+      .order("created_at", { ascending: false });
+
+    setPartnerFiles((filesData ?? []) as PartnerFile[]);
 
     setLoading(false);
   };
@@ -526,11 +549,12 @@ export default function AgentDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="links">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="links">Moje linki ({links.length})</TabsTrigger>
             <TabsTrigger value="contacts">Klienci ({contacts.length})</TabsTrigger>
             <TabsTrigger value="offers">Oferty ({offers.length})</TabsTrigger>
             <TabsTrigger value="my-offers">Moje oferty ({partnerOffers.length})</TabsTrigger>
+            <TabsTrigger value="files">Pliki ({partnerFiles.length})</TabsTrigger>
             <TabsTrigger value="sub-partners">Moi partnerzy ({subPartners.length})</TabsTrigger>
           </TabsList>
 
@@ -758,7 +782,65 @@ export default function AgentDashboard() {
             </div>
           </TabsContent>
 
-          {/* SUB-PARTNERS TAB */}
+          {/* FILES TAB */}
+          <TabsContent value="files" className="space-y-4">
+            <Card>
+              <CardContent className="p-0">
+                {partnerFiles.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Download className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Brak plików do pobrania.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Temat</TableHead>
+                          <TableHead>Plik</TableHead>
+                          <TableHead>Rozmiar</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Pobierz</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {partnerFiles.map((f) => (
+                          <TableRow key={f.id}>
+                            <TableCell className="font-medium text-sm">{f.subject}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                                <span className="text-sm truncate max-w-[200px]">{f.file_name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {f.file_size ? (f.file_size < 1024 * 1024 ? `${(f.file_size / 1024).toFixed(1)} KB` : `${(f.file_size / (1024 * 1024)).toFixed(1)} MB`) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {format(new Date(f.created_at), "d MMM yyyy, HH:mm", { locale: pl })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 h-8 text-xs"
+                                asChild
+                              >
+                                <a href={f.file_url} target="_blank" rel="noopener noreferrer" download={f.file_name}>
+                                  <Download className="h-3.5 w-3.5" /> Pobierz
+                                </a>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="sub-partners" className="space-y-4">
             <div className="flex justify-end">
               <Button onClick={() => setSubPartnerOpen(true)} className="gap-2">
