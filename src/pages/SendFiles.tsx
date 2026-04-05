@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const WEBHOOK_URL = "https://hook.eu1.make.com/9i1o0n18arqc5um5v5aa3lq96en0nf6v";
+const WEBHOOK_URL = "https://hook.eu1.make.com/638v0nnrhrx2jzf9u4g8n9j8huc5b9h3";
 
 interface Partner {
   id: string;
@@ -46,6 +46,7 @@ export default function SendFiles() {
   const [selectedPartners, setSelectedPartners] = useState<Set<string>>(new Set());
   const [files, setFiles] = useState<File[]>([]);
   const [link, setLink] = useState("");
+  const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   const [sentPartners, setSentPartners] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -108,6 +109,7 @@ export default function SendFiles() {
     formData.append("email", partner.email ?? "");
     formData.append("partner_name", partner.name);
     if (partner.contact_person) formData.append("contact_person", partner.contact_person);
+    formData.append("subject", subject.trim());
     if (link.trim()) formData.append("link", link.trim());
     formData.append("files_count", String(files.length));
     files.forEach((file, i) => {
@@ -129,6 +131,10 @@ export default function SendFiles() {
     }
     if (files.length === 0) {
       toast({ title: "Brak plików", description: "Dodaj co najmniej jeden plik do wysłania.", variant: "destructive" });
+      return;
+    }
+    if (!subject.trim()) {
+      toast({ title: "Brak tematu", description: "Podaj temat wiadomości.", variant: "destructive" });
       return;
     }
 
@@ -154,6 +160,7 @@ export default function SendFiles() {
       // Reset
       setFiles([]);
       setLink("");
+      setSubject("");
       setSelectedPartners(new Set());
     } else {
       toast({
@@ -243,7 +250,30 @@ export default function SendFiles() {
               </CardContent>
             </Card>
 
-            {/* Optional link */}
+            {/* Subject */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Temat wiadomości
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1.5">
+                  <Label htmlFor="subject" className="text-xs text-muted-foreground">
+                    O czym są te pliki? (wymagane)
+                  </Label>
+                  <Input
+                    id="subject"
+                    placeholder="np. Materiały marketingowe - Osiedle Parkowe"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    required
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -363,7 +393,7 @@ export default function SendFiles() {
               </div>
               <Button
                 onClick={handleSend}
-                disabled={sending || files.length === 0 || selectedPartners.size === 0}
+                disabled={sending || files.length === 0 || selectedPartners.size === 0 || !subject.trim()}
                 className="gap-2 min-w-32"
               >
                 {sending ? (

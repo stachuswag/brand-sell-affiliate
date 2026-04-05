@@ -33,6 +33,7 @@ import {
   Sun,
   Moon,
   Briefcase,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,7 @@ const adminNavItems = [
   { href: "/reports", label: "Raporty", icon: BarChart2 },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/send-files", label: "Wyślij pliki", icon: Send },
+  { href: "/email-center", label: "Centrum e-mail", icon: Mail },
   { href: "/agents", label: "Konta agentów", icon: UserCheck },
 ];
 
