@@ -122,20 +122,66 @@ Deno.serve(async (req) => {
     let emailBody = "";
 
     const signature = `
-  <p style="margin-top: 30px;">
-    Pozdrawiamy,<br>
-    <strong>Zespół Brand and Sell</strong>
-  </p>
-</div>`;
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;border-top:2px solid #e5e7eb;padding-top:24px;">
+        <tr>
+          <td style="font-family:Arial,sans-serif;font-size:14px;color:#6b7280;">
+            Pozdrawiamy serdecznie 🤝<br>
+            <strong style="color:#111827;font-size:15px;">Zespół Brand and Sell</strong><br>
+            <span style="font-size:12px;color:#9ca3af;">Twój partner w sprzedaży nieruchomości</span>
+          </td>
+        </tr>
+      </table>
+    </td></tr></table>`;
 
-    const header = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">`;
+    const wrapper = (content: string) => `
+<!DOCTYPE html>
+<html lang="pl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:32px 16px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <!-- Header bar -->
+  <tr><td style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:28px 32px;text-align:center;">
+    <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.5px;">Brand and Sell</h1>
+    <p style="margin:6px 0 0;color:#93c5fd;font-size:13px;">Twoja sieć partnerska nieruchomości</p>
+  </td></tr>
+  <!-- Body -->
+  <tr><td style="padding:32px 32px 24px;font-size:15px;line-height:1.7;color:#374151;">
+${content}
+${signature}
+</td></tr></table>
+</td></tr></table>
+</body></html>`;
+
+    const sectionBox = (icon: string, title: string, items: string) =>
+      `<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
+        <tr><td style="padding:14px 18px;">
+          <p style="margin:0 0 8px;font-weight:600;font-size:14px;color:#1f2937;">${icon} ${title}</p>
+          <ul style="margin:0;padding-left:20px;color:#4b5563;font-size:14px;line-height:1.8;">${items}</ul>
+        </td></tr>
+      </table>`;
+
+    const linkBox = (links: string) =>
+      `<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;">
+        <tr><td style="padding:14px 18px;">
+          <p style="margin:0 0 8px;font-weight:600;font-size:14px;color:#1e40af;">🔗 Twoje linki afiliacyjne</p>
+          <ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;">${links}</ul>
+          <p style="margin:8px 0 0;font-size:12px;color:#6b7280;">📊 Każde kliknięcie jest automatycznie przypisane do Ciebie.</p>
+        </td></tr>
+      </table>`;
+
+    const ctaButton = (text: string) =>
+      `<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
+        <tr><td align="center">
+          <a href="mailto:" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#2563eb,#1e40af);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">${text}</a>
+        </td></tr>
+      </table>`;
 
     // ── ONBOARD ──
     if (email_type === "onboard") {
-      // Update status
       await adminClient.from("partners").update({ agent_status: "approved" }).eq("id", partner_id);
 
-      // Assign to project if provided
       if (project_id) {
         await adminClient.from("partner_projects")
           .upsert({ partner_id, project_id }, { onConflict: "partner_id,project_id" });
@@ -145,30 +191,29 @@ Deno.serve(async (req) => {
       const partnerOffers = await fetchPartnerOffers();
 
       const projectsHtml = allProjects.length > 0
-        ? allProjects.map((p) => {
+        ? sectionBox("🏗️", "Twoje inwestycje", allProjects.map((p) => {
             const cities = p.cities?.length ? p.cities.join(", ") : "—";
-            const mat = p.materials_folder_url ? `<br>📁 <a href="${p.materials_folder_url}">Materiały</a>` : "";
-            return `<li><strong>${p.name}</strong> (${cities})${mat}</li>`;
-          }).join("\n")
+            const mat = p.materials_folder_url ? ` — <a href="${p.materials_folder_url}" style="color:#2563eb;">📁 Materiały</a>` : "";
+            return `<li><strong>${p.name}</strong> <span style="color:#6b7280;">(${cities})</span>${mat}</li>`;
+          }).join(""))
         : "";
 
       const offersHtml = partnerOffers.length > 0
-        ? partnerOffers.map((o: { name: string; city?: string | null }) =>
-            `<li>${o.name}${o.city ? ` (${o.city})` : ""}</li>`
-          ).join("\n")
+        ? sectionBox("📋", "Przypisane oferty", partnerOffers.map((o: { name: string; city?: string | null }) =>
+            `<li>${o.name}${o.city ? ` <span style="color:#6b7280;">(${o.city})</span>` : ""}</li>`
+          ).join(""))
         : "";
 
-      emailBody = `${header}
-  <h2>Cześć ${firstName}! 👋</h2>
-  <p>Miło nam poinformować, że Twoje konto w <strong>Brand and Sell</strong> zostało aktywowane!</p>
-  ${projectsHtml ? `<p>Twoje inwestycje:</p><ul>${projectsHtml}</ul>` : ""}
-  ${offersHtml ? `<p>Przypisane oferty:</p><ul>${offersHtml}</ul>` : ""}
-  ${linksHtml ? `<p><strong>Twoje linki afiliacyjne:</strong></p><ul>${linksHtml}</ul>
-  <p style="font-size:13px;color:#666;">Każde kliknięcie jest automatycznie przypisane do Ciebie.</p>` : ""}
-  ${!projectsHtml && !offersHtml ? `<p>Dziękujemy za dołączenie do naszej sieci partnerskiej!</p>` : ""}
-  <p>Pytania? Odpisz na tego maila.</p>
-  <p>Powodzenia! 🚀</p>
-${signature}`; 
+      emailBody = wrapper(`
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
+    <p style="margin:0 0 8px;">🎉 Miło nam poinformować, że <strong>Twoje konto</strong> w Brand and Sell zostało <span style="color:#059669;font-weight:600;">aktywowane</span>!</p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">Od teraz jesteś częścią naszej sieci partnerskiej. Poniżej znajdziesz wszystkie szczegóły.</p>
+    ${projectsHtml}
+    ${offersHtml}
+    ${linksHtml ? linkBox(linksHtml) : ""}
+    ${!projectsHtml && !offersHtml ? `<p style="margin:16px 0;">✨ Dziękujemy za dołączenie do naszej sieci partnerskiej! Wkrótce prześlemy Ci szczegóły współpracy.</p>` : ""}
+    ${ctaButton("💬 Masz pytania? Napisz do nas")}
+    <p style="text-align:center;margin:8px 0 0;font-size:13px;color:#9ca3af;">Powodzenia! 🚀</p>`);
     }
 
     // ── OFFER ──
@@ -189,54 +234,56 @@ ${signature}`;
         ? `${offer.commission_percent}%`
         : offer.commission_amount ? `${Number(offer.commission_amount).toLocaleString("pl-PL")} PLN` : "";
 
-      emailBody = `${header}
-  <h2>Cześć ${firstName}! 👋</h2>
-  <p>Mamy dla Ciebie nową ofertę współpracy:</p>
-  <table style="border-collapse:collapse;width:100%;margin:16px 0;">
-    <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Nazwa</td><td style="padding:8px;border:1px solid #ddd;">${offer.name}</td></tr>
-    ${offer.city ? `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Miasto</td><td style="padding:8px;border:1px solid #ddd;">${offer.city}</td></tr>` : ""}
-    ${offer.address ? `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Adres</td><td style="padding:8px;border:1px solid #ddd;">${offer.address}</td></tr>` : ""}
-    <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Cena</td><td style="padding:8px;border:1px solid #ddd;">${priceStr}</td></tr>
-    ${areaStr ? `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Powierzchnia</td><td style="padding:8px;border:1px solid #ddd;">${areaStr}</td></tr>` : ""}
-    ${commStr ? `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">Prowizja</td><td style="padding:8px;border:1px solid #ddd;">${commStr}</td></tr>` : ""}
-  </table>
-  ${offer.description ? `<p>${offer.description}</p>` : ""}
-  ${linksHtml ? `<p><strong>Twój link afiliacyjny:</strong></p><ul>${linksHtml}</ul>` : ""}
-  <p>Zainteresowany? Odpisz na tego maila.</p>
-${signature}`;
+      const offerRow = (icon: string, label: string, value: string) =>
+        `<tr><td style="padding:10px 14px;border-bottom:1px solid #f3f4f6;font-weight:600;color:#374151;font-size:14px;width:40%;">${icon} ${label}</td><td style="padding:10px 14px;border-bottom:1px solid #f3f4f6;color:#111827;font-size:14px;">${value}</td></tr>`;
+
+      emailBody = wrapper(`
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
+    <p style="margin:0 0 16px;">📋 Mamy dla Ciebie <strong>nową ofertę współpracy</strong>:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+      ${offerRow("🏠", "Nazwa", offer.name)}
+      ${offer.city ? offerRow("📍", "Miasto", offer.city) : ""}
+      ${offer.address ? offerRow("🗺️", "Adres", offer.address) : ""}
+      ${offerRow("💰", "Cena", priceStr)}
+      ${areaStr ? offerRow("📐", "Powierzchnia", areaStr) : ""}
+      ${commStr ? offerRow("🤑", "Prowizja", `<strong style="color:#059669;">${commStr}</strong>`) : ""}
+    </table>
+    ${offer.description ? `<p style="margin:12px 0;color:#4b5563;font-size:14px;line-height:1.6;">${offer.description}</p>` : ""}
+    ${linksHtml ? linkBox(linksHtml) : ""}
+    ${ctaButton("🤝 Zainteresowany? Odpisz!")}`);
     }
 
-    // ── GENERAL (thank you) ──
+    // ── GENERAL ──
     else if (email_type === "general") {
       const partnerOffers = await fetchPartnerOffers();
       const allProjects = await fetchPartnerProjects();
 
       const offersHtml = partnerOffers.length > 0
-        ? `<p>Aktualnie współpracujesz z nami przy:</p><ul>${partnerOffers.map(o => `<li>${o.name}${o.city ? ` (${o.city})` : ""}</li>`).join("")}</ul>`
+        ? sectionBox("📋", "Aktualnie współpracujesz z nami przy", partnerOffers.map(o => `<li>${o.name}${o.city ? ` <span style="color:#6b7280;">(${o.city})</span>` : ""}</li>`).join(""))
         : "";
       const projectsHtml = allProjects.length > 0
-        ? `<p>Twoje inwestycje:</p><ul>${allProjects.map(p => `<li>${p.name} (${(p.cities || []).join(", ")})</li>`).join("")}</ul>`
+        ? sectionBox("🏗️", "Twoje inwestycje", allProjects.map(p => `<li>${p.name} <span style="color:#6b7280;">(${(p.cities || []).join(", ")})</span></li>`).join(""))
         : "";
 
-      emailBody = `${header}
-  <h2>Cześć ${firstName}! 👋</h2>
-  <p>Dziękujemy za dotychczasową współpracę z <strong>Brand and Sell</strong>!</p>
-  ${offersHtml}
-  ${projectsHtml}
-  ${linksHtml ? `<p><strong>Twój link afiliacyjny:</strong></p><ul>${linksHtml}</ul>` : ""}
-  <p>Jeśli masz pytania lub potrzebujesz wsparcia — jesteśmy do dyspozycji.</p>
-${signature}`;
+      emailBody = wrapper(`
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
+    <p style="margin:0 0 16px;">💛 Dziękujemy za dotychczasową współpracę z <strong>Brand and Sell</strong>! Cenimy sobie każdego partnera.</p>
+    ${offersHtml}
+    ${projectsHtml}
+    ${linksHtml ? linkBox(linksHtml) : ""}
+    ${ctaButton("📩 Potrzebujesz wsparcia? Napisz!")}`);
     }
 
     // ── FOLLOW-UP ──
     else if (email_type === "follow_up") {
-      emailBody = `${header}
-  <h2>Cześć ${firstName}! 👋</h2>
-  <p>Chcieliśmy się upewnić, że wszystko jest w porządku i sprawdzić, jak idzie współpraca.</p>
-  ${custom_message ? `<p>${custom_message}</p>` : ""}
-  ${linksHtml ? `<p>Przypominamy — Twój link afiliacyjny:</p><ul>${linksHtml}</ul>` : ""}
-  <p>Daj znać, jeśli potrzebujesz czegokolwiek!</p>
-${signature}`;
+      emailBody = wrapper(`
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
+    <p style="margin:0 0 12px;">🔄 Chcieliśmy się upewnić, że wszystko jest w porządku i sprawdzić, jak idzie współpraca.</p>
+    ${custom_message ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#fefce8;border-radius:8px;border:1px solid #fde68a;">
+      <tr><td style="padding:14px 18px;font-size:14px;color:#92400e;line-height:1.6;">${custom_message}</td></tr>
+    </table>` : ""}
+    ${linksHtml ? linkBox(linksHtml) : ""}
+    ${ctaButton("💬 Daj znać jak Ci idzie!")}`);
     }
 
     // ── PROPOSAL ──
@@ -245,15 +292,14 @@ ${signature}`;
         return new Response(JSON.stringify({ error: "Treść propozycji jest wymagana" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      emailBody = `${header}
-  <h2>Cześć ${firstName}! 👋</h2>
-  <p>Mamy dla Ciebie propozycję:</p>
-  <div style="background:#f9f9f9;padding:16px;border-radius:8px;margin:16px 0;">
-    ${custom_message}
-  </div>
-  ${linksHtml ? `<p>Twój link afiliacyjny:</p><ul>${linksHtml}</ul>` : ""}
-  <p>Co myślisz? Czekamy na odpowiedź!</p>
-${signature}`;
+      emailBody = wrapper(`
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
+    <p style="margin:0 0 12px;">💡 Mamy dla Ciebie ciekawą propozycję:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:linear-gradient(135deg,#faf5ff,#f3e8ff);border-radius:8px;border:1px solid #d8b4fe;">
+      <tr><td style="padding:18px 20px;font-size:14px;color:#581c87;line-height:1.7;">${custom_message}</td></tr>
+    </table>
+    ${linksHtml ? linkBox(linksHtml) : ""}
+    ${ctaButton("🤔 Co myślisz? Odpisz!")}`);
     }
 
     // ── QUESTION ──
@@ -262,14 +308,13 @@ ${signature}`;
         return new Response(JSON.stringify({ error: "Treść pytania jest wymagana" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      emailBody = `${header}
-  <h2>Cześć ${firstName}! 👋</h2>
-  <p>Mamy do Ciebie pytanie:</p>
-  <div style="background:#f0f7ff;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #3b82f6;">
-    ${custom_message}
-  </div>
-  <p>Będziemy wdzięczni za szybką odpowiedź.</p>
-${signature}`;
+      emailBody = wrapper(`
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
+    <p style="margin:0 0 12px;">❓ Mamy do Ciebie pytanie:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#eff6ff;border-radius:8px;border-left:4px solid #3b82f6;border:1px solid #bfdbfe;">
+      <tr><td style="padding:18px 20px;font-size:14px;color:#1e3a5f;line-height:1.7;border-left:4px solid #3b82f6;">${custom_message}</td></tr>
+    </table>
+    ${ctaButton("✉️ Odpowiedz")}`);
     }
 
     else {
