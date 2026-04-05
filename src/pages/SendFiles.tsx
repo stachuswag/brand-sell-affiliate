@@ -189,7 +189,8 @@ export default function SendFiles() {
 
     for (const partner of toSend) {
       // Send webhook
-      const ok = await sendToPartner(partner);
+      const fileLinks = uploadedFiles.map((f) => ({ name: f.name, url: f.url }));
+      const ok = await sendToPartner(partner, fileLinks);
       if (ok) {
         results.push(partner.name);
         // Save file records for this partner
