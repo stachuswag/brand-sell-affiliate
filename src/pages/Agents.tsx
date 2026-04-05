@@ -27,6 +27,7 @@ interface Partner {
   id: string;
   name: string;
   email: string | null;
+  login_email: string | null;
   is_active: boolean;
   agent_user_id: string | null;
 }

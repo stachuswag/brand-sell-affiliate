@@ -548,7 +548,7 @@ export default function Partners() {
                       onChange={(e) => setOnboardPassword(e.target.value)}
                       placeholder="Wpisz hasło które otrzyma partner..."
                     />
-                    <p className="text-xs text-muted-foreground">Login = email partnera. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
+                    <p className="text-xs text-muted-foreground">Login = {onboardPartner?.login_email || onboardPartner?.email || "brak emaila"}. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
                   </div>
                 </div>
               )}
