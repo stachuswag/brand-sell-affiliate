@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { subject, partner_name, contact_person, files, link } =
+    const { subject, partner_name, contact_person, files, link, batch_token } =
       await req.json();
 
     if (!subject || !files || files.length === 0) {
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
                 },
                 {
                   role: "user",
-                  content: `Napisz krótką treść maila informującego partnera o przesłanych plikach. Temat plików: "${subject}". Liczba plików: ${files.length}. Pliki są do pobrania poprzez przyciski poniżej treści maila.`,
+                  content: `Napisz krótką treść maila informującego partnera o przesłanych plikach. Temat plików: "${subject}". Liczba plików: ${files.length}. Partner może pobrać pliki klikając przycisk w mailu.`,
                 },
               ],
               max_tokens: 200,
@@ -97,20 +97,19 @@ Deno.serve(async (req) => {
     }
 
     if (!emailText) {
-      emailText = `Przesyłamy pliki dotyczące: ${subject}. W załączeniu znajdziesz ${files.length} plik(ów) do pobrania.`;
+      emailText = `Przesyłamy pliki dotyczące: ${subject}. Kliknij przycisk poniżej, aby pobrać ${files.length} plik(ów).`;
     }
 
-    // Build file download buttons
-    const fileButtonsHtml = (files as { name: string; url: string }[])
-      .map(
-        (f) => `
-      <tr><td style="padding:4px 0;">
-        <a href="${f.url}" style="display:inline-block;padding:10px 20px;background:#f3f4f6;color:#1f2937;text-decoration:none;border-radius:8px;font-size:13px;font-weight:500;border:1px solid #e5e7eb;width:100%;box-sizing:border-box;text-align:left;">
-          📎 ${f.name}
-        </a>
-      </td></tr>`
-      )
-      .join("");
+    // Build download panel URL
+    const downloadUrl = batch_token
+      ? `https://brand-sell-affiliate.lovable.app/files/${batch_token}`
+      : "";
+
+    const fileCountText = files.length === 1
+      ? "1 plik"
+      : files.length < 5
+        ? `${files.length} pliki`
+        : `${files.length} plików`;
 
     const linkHtml = link
       ? `<p style="margin:16px 0 0;font-size:14px;">🔗 Dodatkowy link: <a href="${link}" style="color:#2563eb;text-decoration:underline;">${link}</a></p>`
@@ -144,15 +143,14 @@ Deno.serve(async (req) => {
   <!-- Body -->
   <tr><td style="padding:32px 32px 24px;font-size:15px;line-height:1.7;color:#374151;">
     <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
-    <p style="margin:0 0 16px;">${emailText}</p>
+    <p style="margin:0 0 20px;">${emailText}</p>
 
-    <!-- Files section -->
+    <!-- Files info box -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">
-      <tr><td style="padding:14px 18px;">
-        <p style="margin:0 0 10px;font-weight:600;font-size:14px;color:#0369a1;">📁 Pliki do pobrania</p>
-        <table width="100%" cellpadding="0" cellspacing="0">
-          ${fileButtonsHtml}
-        </table>
+      <tr><td style="padding:18px 20px;text-align:center;">
+        <p style="margin:0 0 4px;font-weight:600;font-size:15px;color:#0369a1;">📁 ${fileCountText} do pobrania</p>
+        <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">Temat: ${subject}</p>
+        ${downloadUrl ? `<a href="${downloadUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#2563eb,#1e40af);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;">📥 Pobierz pliki</a>` : ""}
       </td></tr>
     </table>
 
