@@ -60,7 +60,7 @@ export default function Partners() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
-  const [onboardWebhookUrl, setOnboardWebhookUrl] = useState("");
+  
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
 
@@ -161,7 +161,7 @@ export default function Partners() {
   };
 
   // One button - onboard
-  const openOnboard = (p: Partner) => { setOnboardPartner(p); setOnboardProjectId(""); setOnboardWebhookUrl(""); setOnboardOpen(true); };
+  const openOnboard = (p: Partner) => { setOnboardPartner(p); setOnboardProjectId(""); setOnboardOpen(true); };
   const handleOnboard = async () => {
     if (!onboardPartner || !onboardProjectId) return;
     setOnboarding(true);
@@ -170,7 +170,7 @@ export default function Partners() {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ partner_id: onboardPartner.id, project_id: onboardProjectId, webhook_url: onboardWebhookUrl || undefined }),
+        body: JSON.stringify({ partner_id: onboardPartner.id, project_id: onboardProjectId }),
       });
       const result = await res.json();
       if (!res.ok || result.error) toast({ title: "Błąd", description: result.error, variant: "destructive" });
