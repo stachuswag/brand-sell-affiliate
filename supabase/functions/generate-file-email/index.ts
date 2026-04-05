@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
                   content: `Napisz krótką treść maila informującego partnera o przesłanych plikach. Temat plików: "${subject}". Liczba plików: ${files.length}. Partner może pobrać pliki klikając przycisk w mailu.`,
                 },
               ],
-              max_tokens: 200,
+              max_tokens: 4096,
               temperature: 0.7,
             }),
           }
