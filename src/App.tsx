@@ -22,6 +22,7 @@ import Agents from "./pages/Agents";
 import Chat from "./pages/Chat";
 import Projects from "./pages/Projects";
 import EmailCenter from "./pages/EmailCenter";
+import FileDownload from "./pages/FileDownload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/c/:code" element={<TrackingRedirect />} />
+            <Route path="/files/:token" element={<FileDownload />} />
             <Route path="/lp/:id" element={<LandingPageView />} />
 
             {/* Protected routes — agent */}
