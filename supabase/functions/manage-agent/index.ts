@@ -197,6 +197,9 @@ Deno.serve(async (req) => {
 
       if (roleError) throw roleError;
 
+      // Clear any existing agent_user_id references to avoid unique constraint violation
+      await supabaseAdmin.from("partners").update({ agent_user_id: null }).eq("agent_user_id", userId);
+
       const { error: partnerError } = await supabaseAdmin
         .from("partners")
         .update({ agent_user_id: userId })
