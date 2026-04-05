@@ -486,17 +486,28 @@ export default function Partners() {
               </div>
 
               {onboardEmailType === "onboard" && (
-                <div className="space-y-2">
-                  <Label>Projekt inwestycyjny (opcjonalnie)</Label>
-                  <Select value={onboardProjectId} onValueChange={setOnboardProjectId}>
-                    <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
-                    <SelectContent>
-                      {projects.map((pr) => (
-                        <SelectItem key={pr.id} value={pr.id}>{pr.name} ({pr.cities.join(", ")})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Zatwierdzi agenta i wyśle email powitalny. Jeśli wybierzesz projekt — przypisze go i doda materiały.</p>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Projekt inwestycyjny (opcjonalnie)</Label>
+                    <Select value={onboardProjectId} onValueChange={setOnboardProjectId}>
+                      <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
+                      <SelectContent>
+                        {projects.map((pr) => (
+                          <SelectItem key={pr.id} value={pr.id}>{pr.name} ({pr.cities.join(", ")})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu (do wysłania w mailu)</Label>
+                    <Input
+                      type="text"
+                      value={onboardPassword}
+                      onChange={(e) => setOnboardPassword(e.target.value)}
+                      placeholder="Wpisz hasło które otrzyma partner..."
+                    />
+                    <p className="text-xs text-muted-foreground">Login = email partnera. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
+                  </div>
                 </div>
               )}
 
