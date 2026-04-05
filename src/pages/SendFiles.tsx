@@ -104,29 +104,41 @@ export default function SendFiles() {
     addFiles(e.dataTransfer.files);
   }
 
-  function buildEmailBody(partner: Partner, fileLinks: { name: string; url: string }[]): string {
-    const name = partner.contact_person || partner.name;
-    const fileListHtml = fileLinks
-      .map((f) => `<li><a href="${f.url}" style="color:#2563eb;text-decoration:underline;">${f.name}</a></li>`)
-      .join("");
-    const linkHtml = link.trim()
-      ? `<p style="margin-top:16px;">Dodatkowy link: <a href="${link.trim()}" style="color:#2563eb;text-decoration:underline;">${link.trim()}</a></p>`
-      : "";
-
-    return `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-        <p>Cześć ${name},</p>
-        <p>Przesyłam pliki dotyczące: <strong>${subject.trim()}</strong></p>
-        <p>W załączniku znajdziesz:</p>
-        <ul>${fileListHtml}</ul>
-        ${linkHtml}
-        <p style="margin-top:24px;">Pozdrawiam,<br/>Zespół</p>
-      </div>
-    `;
+  async function generateEmailBody(partner: Partner, fileLinks: { name: string; url: string }[]): Promise<{ email_body: string; email_subject: string }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-file-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            subject: subject.trim(),
+            partner_name: partner.name,
+            contact_person: partner.contact_person,
+            files: fileLinks,
+            link: link.trim() || undefined,
+          }),
+        }
+      );
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error("Generate email error:", e);
+    }
+    // Fallback
+    return {
+      email_body: `<p>Przesyłam pliki dotyczące: ${subject.trim()}</p>`,
+      email_subject: `${subject.trim()} — Brand and Sell`,
+    };
   }
 
   async function sendToPartner(partner: Partner, fileLinks: { name: string; url: string }[]): Promise<boolean> {
-    const emailBody = buildEmailBody(partner, fileLinks);
+    const { email_body, email_subject } = await generateEmailBody(partner, fileLinks);
 
     try {
       const res = await fetch(WEBHOOK_URL, {
@@ -134,12 +146,8 @@ export default function SendFiles() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: partner.email ?? "",
-          partner_name: partner.name,
-          contact_person: partner.contact_person ?? "",
-          subject: subject.trim(),
-          email_body: emailBody,
-          link: link.trim() || undefined,
-          files: fileLinks,
+          email_body,
+          email_subject,
         }),
       });
       return res.ok;
