@@ -33,7 +33,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2 } from "lucide-react";
+import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, Linkedin, Instagram } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
