@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, KeyRound, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, KeyRound, Trash2, Eye, EyeOff, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {
@@ -361,6 +361,31 @@ export default function Agents() {
                 <Button variant="outline" onClick={() => setResetOpen(false)}>Anuluj</Button>
                 <Button onClick={handleReset} disabled={resetting}>
                   {resetting ? "Zapisywanie..." : "Zmień hasło"}
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Welcome Email Dialog */}
+        <Dialog open={welcomeOpen} onOpenChange={setWelcomeOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>📧 Wysłać mail powitalny?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Konto agenta <strong>{welcomePartner?.name}</strong> zostało utworzone. Czy wysłać mu maila powitalnego z danymi logowania?
+              </p>
+              <div className="rounded-md bg-muted p-3 space-y-1 text-sm">
+                <div><span className="text-muted-foreground">Login:</span> <strong>{welcomeEmail}</strong></div>
+                <div><span className="text-muted-foreground">Hasło:</span> <strong>{welcomePassword}</strong></div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setWelcomeOpen(false)}>Nie</Button>
+                <Button onClick={handleSendWelcome} disabled={sendingWelcome} className="gap-1.5">
+                  <Mail className="h-4 w-4" />
+                  {sendingWelcome ? "Wysyłanie..." : "Tak, wyślij"}
                 </Button>
               </DialogFooter>
             </div>
