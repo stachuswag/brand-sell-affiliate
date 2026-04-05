@@ -81,7 +81,7 @@ export default function Partners() {
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
   const [onboardOfferId, setOnboardOfferId] = useState("");
-  const [onboardEmailType, setOnboardEmailType] = useState<string>("onboard");
+  const [onboardEmailType, setOnboardEmailType] = useState<OnboardEmailType>("onboard");
   const [onboardCustomMsg, setOnboardCustomMsg] = useState("");
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
@@ -183,12 +183,16 @@ export default function Partners() {
   };
 
   // One button - onboard
-  const openOnboard = (p: Partner) => {
-    setOnboardPartner(p);
+  const resetOnboardForm = (type: OnboardEmailType = "onboard") => {
     setOnboardProjectId("");
     setOnboardOfferId("");
-    setOnboardEmailType("onboard");
+    setOnboardEmailType(type);
     setOnboardCustomMsg("");
+  };
+
+  const openOnboard = (p: Partner) => {
+    setOnboardPartner(p);
+    resetOnboardForm();
     setOnboardOpen(true);
   };
 
@@ -216,15 +220,7 @@ export default function Partners() {
       const result = await res.json();
       if (!res.ok || result.error) toast({ title: "Błąd", description: result.error, variant: "destructive" });
       else {
-        const typeLabels: Record<string, string> = {
-          onboard: "Onboarding wysłany! 🚀",
-          offer: "Email o ofercie wysłany! 📋",
-          general: "Email wysłany! ✉️",
-          follow_up: "Follow-up wysłany! 🔄",
-          proposal: "Propozycja wysłana! 💡",
-          question: "Pytanie wysłane! ❓",
-        };
-        toast({ title: typeLabels[onboardEmailType] || "Wysłano!", description: `Email do ${onboardPartner.name} na ${result.email}` });
+        toast({ title: emailTypeSuccessLabels[onboardEmailType], description: `Email do ${onboardPartner.name} na ${result.email}` });
         setOnboardOpen(false);
         fetchPartners();
       }
@@ -409,21 +405,30 @@ export default function Partners() {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>📧 Wyślij email — {onboardPartner?.name}</DialogTitle>
+              <DialogDescription>
+                Kliknij typ wiadomości poniżej — wtedy pokażą się właściwe pola, nie tylko projekt.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Typ wiadomości *</Label>
-                <Select value={onboardEmailType} onValueChange={(v) => { setOnboardEmailType(v); setOnboardProjectId(""); setOnboardOfferId(""); setOnboardCustomMsg(""); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="onboard">🚀 Onboarding (zatwierdzenie agenta)</SelectItem>
-                    <SelectItem value="offer">📋 Email o ofercie</SelectItem>
-                    <SelectItem value="general">✉️ Podziękowanie za współpracę</SelectItem>
-                    <SelectItem value="follow_up">🔄 Follow-up</SelectItem>
-                    <SelectItem value="proposal">💡 Propozycja</SelectItem>
-                    <SelectItem value="question">❓ Pytanie</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {emailTypeOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant={onboardEmailType === option.value ? "default" : "outline"}
+                      onClick={() => resetOnboardForm(option.value)}
+                      className="h-auto min-h-16 justify-start whitespace-normal px-3 py-3 text-left"
+                    >
+                      <span className="mr-2 text-base" aria-hidden="true">{option.icon}</span>
+                      <span className="flex flex-col items-start leading-tight">
+                        <span>{option.label}</span>
+                        <span className="text-xs opacity-80">{option.description}</span>
+                      </span>
+                    </Button>
+                  ))}
+                </div>
               </div>
 
               {onboardEmailType === "onboard" && (
