@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -25,6 +25,8 @@ import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket } 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
+type OnboardEmailType = "onboard" | "offer" | "general" | "follow_up" | "proposal" | "question";
+
 interface Offer { id: string; name: string; city: string | null; }
 interface Project { id: string; name: string; cities: string[]; }
 interface Partner {
@@ -38,6 +40,24 @@ interface Partner {
 }
 
 const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "" };
+
+const emailTypeOptions: { value: OnboardEmailType; label: string; description: string; icon: string }[] = [
+  { value: "onboard", label: "Onboarding", description: "zatwierdzenie agenta", icon: "🚀" },
+  { value: "offer", label: "Oferta", description: "mail o konkretnej ofercie", icon: "📋" },
+  { value: "general", label: "Ogólny", description: "podziękowanie i link afiliacyjny", icon: "✉️" },
+  { value: "follow_up", label: "Follow-up", description: "krótkie przypomnienie", icon: "🔄" },
+  { value: "proposal", label: "Propozycja", description: "własna propozycja współpracy", icon: "💡" },
+  { value: "question", label: "Pytanie", description: "wiadomość z pytaniem", icon: "❓" },
+];
+
+const emailTypeSuccessLabels: Record<OnboardEmailType, string> = {
+  onboard: "Onboarding wysłany! 🚀",
+  offer: "Email o ofercie wysłany! 📋",
+  general: "Email wysłany! ✉️",
+  follow_up: "Follow-up wysłany! 🔄",
+  proposal: "Propozycja wysłana! 💡",
+  question: "Pytanie wysłane! ❓",
+};
 
 export default function Partners() {
   const { role } = useAuth();
