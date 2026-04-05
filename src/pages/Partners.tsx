@@ -85,6 +85,7 @@ export default function Partners() {
   const [onboardCustomMsg, setOnboardCustomMsg] = useState("");
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchPartners = async () => {
     const { data } = await supabase
