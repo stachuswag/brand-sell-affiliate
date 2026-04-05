@@ -224,11 +224,12 @@ ${signature}
     <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Cześć ${firstName}! 👋</h2>
     <p style="margin:0 0 8px;">🎉 Miło nam poinformować, że <strong>Twoje konto</strong> w Brand and Sell zostało <span style="color:#059669;font-weight:600;">aktywowane</span>!</p>
     <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">Od teraz jesteś częścią naszej sieci partnerskiej. Poniżej znajdziesz wszystkie szczegóły.</p>
+    ${login_email && login_password ? credentialsBox(login_email, login_password) : ""}
     ${projectsHtml}
     ${offersHtml}
     ${linksHtml ? linkBox(linksHtml) : ""}
     ${!projectsHtml && !offersHtml ? `<p style="margin:16px 0;">✨ Dziękujemy za dołączenie do naszej sieci partnerskiej! Wkrótce prześlemy Ci szczegóły współpracy.</p>` : ""}
-    ${ctaButton("💬 Masz pytania? Napisz do nas")}
+    ${ctaButton("🚀 Zaloguj się do panelu", loginUrl)}
     <p style="text-align:center;margin:8px 0 0;font-size:13px;color:#9ca3af;">Powodzenia! 🚀</p>`);
     }
 
