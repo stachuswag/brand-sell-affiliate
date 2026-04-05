@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { FileText, Download, Loader2, CheckCircle2 } from "lucide-react";
 
 
 interface FileRecord {
