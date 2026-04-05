@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const WEBHOOK_URL = "https://hook.eu1.make.com/esh18rt37erokrci4etz3vdw5bvcxdyr";
+const WEBHOOK_URL = "https://hook.eu1.make.com/mgrwkg5eoxyrmdnxwua9urt4uuppluiz";
 
 interface Partner {
   id: string;
