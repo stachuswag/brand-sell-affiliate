@@ -137,8 +137,8 @@ export default function SendFiles() {
     };
   }
 
-  async function sendToPartner(partner: Partner, fileLinks: { name: string; url: string }[]): Promise<boolean> {
-    const { email_body, email_subject } = await generateEmailBody(partner, fileLinks);
+  async function sendToPartner(partner: Partner, fileLinks: { name: string; url: string }[], batchToken: string): Promise<boolean> {
+    const { email_body, email_subject } = await generateEmailBody(partner, fileLinks, batchToken);
 
     try {
       const res = await fetch(WEBHOOK_URL, {
@@ -196,22 +196,27 @@ export default function SendFiles() {
     const results: string[] = [];
 
     for (const partner of toSend) {
-      // Send webhook
+      // Generate unique batch token for this partner's files
+      const batchToken = crypto.randomUUID();
       const fileLinks = uploadedFiles.map((f) => ({ name: f.name, url: f.url }));
-      const ok = await sendToPartner(partner, fileLinks);
+
+      // Save file records FIRST so the download page works when email arrives
+      const records = uploadedFiles.map((f) => ({
+        partner_id: partner.id,
+        subject: subject.trim(),
+        file_name: f.name,
+        file_url: f.url,
+        file_size: f.size,
+        file_type: f.type,
+        sent_by: currentUser?.id ?? null,
+        batch_token: batchToken,
+      }));
+      await supabase.from("partner_files").insert(records);
+
+      // Send webhook with email
+      const ok = await sendToPartner(partner, fileLinks, batchToken);
       if (ok) {
         results.push(partner.name);
-        // Save file records for this partner
-        const records = uploadedFiles.map((f) => ({
-          partner_id: partner.id,
-          subject: subject.trim(),
-          file_name: f.name,
-          file_url: f.url,
-          file_size: f.size,
-          file_type: f.type,
-          sent_by: currentUser?.id ?? null,
-        }));
-        await supabase.from("partner_files").insert(records);
       }
     }
 
