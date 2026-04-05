@@ -396,9 +396,16 @@ export default function Partners() {
               <div className="space-y-2"><Label>Nazwa firmy *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
               <div className="space-y-2"><Label>Osoba kontaktowa</Label><Input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Email {!editing && "*"}</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required={!editing} /></div>
+                <div className="space-y-2"><Label>Email kontaktowy</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Telefon</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               </div>
+              {!editing && (
+                <div className="space-y-2">
+                  <Label>Login do panelu (email) *</Label>
+                  <Input type="email" value={form.login_email} onChange={(e) => setForm({ ...form, login_email: e.target.value })} required placeholder="agent@firma.pl" />
+                  <p className="text-xs text-muted-foreground">Osobny email logowania — może być inny niż email kontaktowy. Musi być unikalny dla każdego partnera.</p>
+                </div>
+              )}
               {!editing && (
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu *</Label>
