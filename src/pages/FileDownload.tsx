@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Download, Loader2, CheckCircle2 } from "lucide-react";
+import { FileText, Download, Loader2 } from "lucide-react";
 
 
 interface FileRecord {
@@ -81,14 +81,9 @@ export default function FileDownload() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {files.map((file) => (
-                  <a
+                  <div
                     key={file.id}
-                    href={file.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: "none" }}
-                  >
-                    <div style={{
+                    style={{
                       display: "flex",
                       alignItems: "center",
                       gap: 12,
@@ -101,21 +96,39 @@ export default function FileDownload() {
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e0f2fe")}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f9ff")}
-                    >
-                      <FileText style={{ width: 20, height: 20, color: "#0369a1", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {file.file_name}
+                    onClick={async () => {
+                      const path = decodeURIComponent(file.file_url.split("/partner-files/")[1] ?? "");
+                      if (!path) {
+                        window.open(file.file_url, "_blank");
+                        return;
+                      }
+                      const { data, error } = await supabase.storage.from("partner-files").download(path);
+                      if (error || !data) {
+                        window.open(file.file_url, "_blank");
+                        return;
+                      }
+                      const url = window.URL.createObjectURL(data);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = file.file_name;
+                      document.body.appendChild(a);
+                      a.click();
+                      setTimeout(() => { a.remove(); window.URL.revokeObjectURL(url); }, 1000);
+                    }}
+                  >
+                    <FileText style={{ width: 20, height: 20, color: "#0369a1", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {file.file_name}
+                      </p>
+                      {file.file_size && (
+                        <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b7280" }}>
+                          {formatFileSize(file.file_size)}
                         </p>
-                        {file.file_size && (
-                          <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b7280" }}>
-                            {formatFileSize(file.file_size)}
-                          </p>
-                        )}
-                      </div>
-                      <Download style={{ width: 18, height: 18, color: "#2563eb", flexShrink: 0 }} />
+                      )}
                     </div>
-                  </a>
+                    <Download style={{ width: 18, height: 18, color: "#2563eb", flexShrink: 0 }} />
+                  </div>
                 ))}
               </div>
 
