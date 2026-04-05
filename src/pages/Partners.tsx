@@ -553,21 +553,27 @@ export default function Partners() {
               <div className="space-y-2">
                 <Label>Typ wiadomości *</Label>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {emailTypeOptions.map((option) => (
-                    <Button
-                      key={option.value}
-                      type="button"
-                      variant={onboardEmailType === option.value ? "default" : "outline"}
-                      onClick={() => resetOnboardForm(option.value)}
-                      className="h-auto min-h-16 justify-start whitespace-normal px-3 py-3 text-left"
-                    >
-                      <span className="mr-2 text-base" aria-hidden="true">{option.icon}</span>
-                      <span className="flex flex-col items-start leading-tight">
-                        <span>{option.label}</span>
-                        <span className="text-xs opacity-80">{option.description}</span>
-                      </span>
-                    </Button>
-                  ))}
+                  {emailTypeOptions.map((option) => {
+                    const isDisabled = option.value === "onboard" && onboardPartner && isOnboardSent(onboardPartner);
+                    return (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={onboardEmailType === option.value ? "default" : "outline"}
+                        onClick={() => !isDisabled && resetOnboardForm(option.value)}
+                        disabled={!!isDisabled}
+                        className="h-auto min-h-16 justify-start whitespace-normal px-3 py-3 text-left"
+                      >
+                        <span className="mr-2 text-base" aria-hidden="true">{option.icon}</span>
+                        <span className="flex flex-col items-start leading-tight">
+                          <span>{option.label}</span>
+                          <span className="text-xs opacity-80">
+                            {isDisabled ? "już wysłany ✓" : option.description}
+                          </span>
+                        </span>
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
 
