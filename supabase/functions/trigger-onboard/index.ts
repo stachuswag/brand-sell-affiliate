@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
       project_id,
       offer_id,
       custom_message,
+      login_email,
+      login_password,
     } = body;
 
     if (!partner_id) {
@@ -171,10 +173,24 @@ ${signature}
         </td></tr>
       </table>`;
 
-    const ctaButton = (text: string) =>
+    const loginUrl = "https://brand-sell-affiliate.lovable.app/login";
+
+    const ctaButton = (text: string, href = "mailto:") =>
       `<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
         <tr><td align="center">
-          <a href="mailto:" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#2563eb,#1e40af);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">${text}</a>
+          <a href="${href}" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#2563eb,#1e40af);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">${text}</a>
+        </td></tr>
+      </table>`;
+
+    const credentialsBox = (email: string, password: string) =>
+      `<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#fefce8;border-radius:8px;border:1px solid #fde68a;">
+        <tr><td style="padding:18px 20px;">
+          <p style="margin:0 0 10px;font-weight:600;font-size:14px;color:#92400e;">🔐 Twoje dane logowania</p>
+          <table cellpadding="0" cellspacing="0" style="font-size:14px;color:#78350f;">
+            <tr><td style="padding:4px 12px 4px 0;font-weight:600;">📧 Login:</td><td style="padding:4px 0;">${email}</td></tr>
+            <tr><td style="padding:4px 12px 4px 0;font-weight:600;">🔑 Hasło:</td><td style="padding:4px 0;font-family:monospace;background:#fef3c7;padding:2px 8px;border-radius:4px;">${password}</td></tr>
+          </table>
+          <p style="margin:12px 0 0;font-size:12px;color:#b45309;">⚠️ Nie udostępniaj nikomu swoich danych logowania!</p>
         </td></tr>
       </table>`;
 
