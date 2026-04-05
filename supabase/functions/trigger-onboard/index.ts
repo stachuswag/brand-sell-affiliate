@@ -277,9 +277,20 @@ ${signature}`;
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Build subject line
+    const subjectMap: Record<string, string> = {
+      onboard: "Witamy w Brand and Sell! 🚀",
+      offer: "Nowa oferta współpracy — Brand and Sell",
+      general: "Dziękujemy za współpracę — Brand and Sell",
+      follow_up: "Sprawdzamy jak idzie — Brand and Sell",
+      proposal: "Propozycja współpracy — Brand and Sell",
+      question: "Mamy do Ciebie pytanie — Brand and Sell",
+    };
+    const emailSubject = subjectMap[email_type] || "Wiadomość od Brand and Sell";
+
     // Send to Make.com
-    const webhookPayload = { email: partner.email, email_body: emailBody };
-    console.log("Sending webhook:", JSON.stringify({ email: partner.email, type: email_type }));
+    const webhookPayload = { email: partner.email, email_body: emailBody, email_subject: emailSubject };
+    console.log("Sending webhook:", JSON.stringify({ email: partner.email, type: email_type, subject: emailSubject }));
 
     let webhookResult = null;
     try {
