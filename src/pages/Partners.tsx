@@ -124,7 +124,7 @@ export default function Partners() {
   const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setOpen(true); };
   const openEdit = async (p: Partner) => {
     setEditing(p);
-    setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "" });
+    setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "", login_email: p.login_email ?? "" });
     await fetchPartnerOffers(p.id);
     setOpen(true);
   };
