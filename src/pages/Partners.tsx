@@ -21,7 +21,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket } from "lucide-react";
+import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, Eye, EyeOff, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,7 +39,7 @@ interface Partner {
   clay_enriched_at?: string | null; agent_status?: string | null;
 }
 
-const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "" };
+const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "", password: "" };
 
 const emailTypeOptions: { value: OnboardEmailType; label: string; description: string; icon: string }[] = [
   { value: "onboard", label: "Onboarding", description: "zatwierdzenie agenta", icon: "🚀" },
@@ -83,8 +83,10 @@ export default function Partners() {
   const [onboardOfferId, setOnboardOfferId] = useState("");
   const [onboardEmailType, setOnboardEmailType] = useState<OnboardEmailType>("onboard");
   const [onboardCustomMsg, setOnboardCustomMsg] = useState("");
+  const [onboardPassword, setOnboardPassword] = useState("");
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchPartners = async () => {
     const { data } = await supabase
@@ -121,7 +123,7 @@ export default function Partners() {
   const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setOpen(true); };
   const openEdit = async (p: Partner) => {
     setEditing(p);
-    setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "" });
+    setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "" });
     await fetchPartnerOffers(p.id);
     setOpen(true);
   };
@@ -137,10 +139,32 @@ export default function Partners() {
       if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       toast({ title: "Zaktualizowano partnera" });
     } else {
+      if (!form.email || !form.password) {
+        toast({ title: "Błąd", description: "Email i hasło są wymagane przy tworzeniu partnera", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
       const { data, error } = await supabase.from("partners").insert({ name: form.name, contact_person: form.contact_person || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null }).select("id").single();
       if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       partnerId = data.id;
-      toast({ title: "Dodano partnera" });
+
+      // Auto-create agent account
+      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ action: "create", partner_id: partnerId, partner_name: form.name, email: form.email, password: form.password }),
+        });
+        const result = await res.json();
+        if (!res.ok || result.error) {
+          toast({ title: "Partner dodany, ale błąd konta", description: result.error, variant: "destructive" });
+        } else {
+          toast({ title: "Partner dodany + konto utworzone! 🎉" });
+        }
+      } catch {
+        toast({ title: "Partner dodany, ale błąd tworzenia konta", variant: "destructive" });
+      }
     }
     if (partnerId) {
       await supabase.from("partner_offers").delete().eq("partner_id", partnerId);
@@ -188,6 +212,7 @@ export default function Partners() {
     setOnboardOfferId("");
     setOnboardEmailType(type);
     setOnboardCustomMsg("");
+    setOnboardPassword("");
   };
 
   const openOnboard = (p: Partner) => {
@@ -211,6 +236,10 @@ export default function Partners() {
       if (onboardProjectId) payload.project_id = onboardProjectId;
       if (onboardOfferId) payload.offer_id = onboardOfferId;
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
+      if (onboardEmailType === "onboard" && onboardPartner.email) {
+        payload.login_email = onboardPartner.email;
+        if (onboardPassword) payload.login_password = onboardPassword;
+      }
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`, {
         method: "POST",
@@ -339,9 +368,34 @@ export default function Partners() {
               <div className="space-y-2"><Label>Nazwa firmy *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
               <div className="space-y-2"><Label>Osoba kontaktowa</Label><Input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Email {!editing && "*"}</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required={!editing} /></div>
                 <div className="space-y-2"><Label>Telefon</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               </div>
+              {!editing && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu *</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      required
+                      placeholder="Min. 6 znaków"
+                      minLength={6}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Login i hasło zostaną wysłane w mailu onboardingowym.</p>
+                </div>
+              )}
               <div className="space-y-2"><Label>Notatki</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} /></div>
               {allOffers.length > 0 && (
                 <div className="space-y-2">
@@ -432,17 +486,28 @@ export default function Partners() {
               </div>
 
               {onboardEmailType === "onboard" && (
-                <div className="space-y-2">
-                  <Label>Projekt inwestycyjny (opcjonalnie)</Label>
-                  <Select value={onboardProjectId} onValueChange={setOnboardProjectId}>
-                    <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
-                    <SelectContent>
-                      {projects.map((pr) => (
-                        <SelectItem key={pr.id} value={pr.id}>{pr.name} ({pr.cities.join(", ")})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Zatwierdzi agenta i wyśle email powitalny. Jeśli wybierzesz projekt — przypisze go i doda materiały.</p>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Projekt inwestycyjny (opcjonalnie)</Label>
+                    <Select value={onboardProjectId} onValueChange={setOnboardProjectId}>
+                      <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
+                      <SelectContent>
+                        {projects.map((pr) => (
+                          <SelectItem key={pr.id} value={pr.id}>{pr.name} ({pr.cities.join(", ")})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Hasło do panelu (do wysłania w mailu)</Label>
+                    <Input
+                      type="text"
+                      value={onboardPassword}
+                      onChange={(e) => setOnboardPassword(e.target.value)}
+                      placeholder="Wpisz hasło które otrzyma partner..."
+                    />
+                    <p className="text-xs text-muted-foreground">Login = email partnera. Hasło zostanie wysłane w mailu z ostrzeżeniem aby go nie udostępniać.</p>
+                  </div>
                 </div>
               )}
 
