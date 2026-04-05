@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const WEBHOOK_URL = "https://hook.eu1.make.com/s5gdycilxh42vrzsbtvqidgttzgyx0go";
+const WEBHOOK_URL = "https://hook.eu1.make.com/jfn3pvf8u2m3d8gkc8nkhxwrlqa4amyg";
 
 type EmailType = "onboard" | "offer" | "general" | "follow_up" | "proposal" | "question";
 
