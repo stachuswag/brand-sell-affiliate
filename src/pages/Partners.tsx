@@ -221,11 +221,15 @@ export default function Partners() {
     return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   };
 
+  const isOnboardSent = (p: Partner) => p.agent_status === "approved";
+
   const openOnboard = (p: Partner) => {
     setOnboardPartner(p);
-    resetOnboardForm();
+    // If onboarding already sent, default to "general" type
+    const defaultType = isOnboardSent(p) ? "general" : "onboard";
+    resetOnboardForm(defaultType);
     // Auto-fill password if partner has account but onboarding not sent yet
-    if (p.agent_user_id && p.agent_status !== "approved") {
+    if (p.agent_user_id && !isOnboardSent(p)) {
       setOnboardPassword(generatePassword());
     }
     setOnboardOpen(true);
