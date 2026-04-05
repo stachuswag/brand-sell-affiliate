@@ -56,6 +56,19 @@ interface Partner {
   created_at: string;
   link_count?: number;
   contact_count?: number;
+  linkedin_url?: string | null;
+  instagram_url?: string | null;
+  instagram_followers?: number | null;
+  clay_icebreaker?: string | null;
+  clay_summary?: string | null;
+  clay_enriched_at?: string | null;
+  agent_status?: string | null;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  cities: string[];
 }
 
 const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "" };
