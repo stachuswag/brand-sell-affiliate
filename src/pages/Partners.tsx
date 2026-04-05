@@ -140,8 +140,8 @@ export default function Partners() {
       if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       toast({ title: "Zaktualizowano partnera" });
     } else {
-      if (!form.email || !form.password) {
-        toast({ title: "Błąd", description: "Email i hasło są wymagane przy tworzeniu partnera", variant: "destructive" });
+      if (!form.login_email || !form.password) {
+        toast({ title: "Błąd", description: "Login (email do panelu) i hasło są wymagane przy tworzeniu partnera", variant: "destructive" });
         setSaving(false);
         return;
       }
@@ -149,13 +149,13 @@ export default function Partners() {
       if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
       partnerId = data.id;
 
-      // Auto-create agent account
+      // Auto-create agent account using login_email
       const { data: { session } } = await supabase.auth.getSession();
       try {
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-          body: JSON.stringify({ action: "create", partner_id: partnerId, partner_name: form.name, email: form.email, password: form.password }),
+          body: JSON.stringify({ action: "create", partner_id: partnerId, partner_name: form.name, email: form.login_email, password: form.password }),
         });
         const result = await res.json();
         if (!res.ok || result.error) {
