@@ -86,6 +86,14 @@ export default function Partners() {
   const [allOffers, setAllOffers] = useState<Offer[]>([]);
   const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
   const isAdmin = role === "admin";
+  const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [onboardOpen, setOnboardOpen] = useState(false);
+  const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
+  const [onboardProjectId, setOnboardProjectId] = useState("");
+  const [onboardWebhookUrl, setOnboardWebhookUrl] = useState("");
+  const [onboarding, setOnboarding] = useState(false);
+  const [clayDetailPartner, setClayDetailPartner] = useState<Partner | null>(null);
 
   const fetchPartners = async () => {
     const { data } = await supabase
