@@ -104,20 +104,44 @@ export default function SendFiles() {
     addFiles(e.dataTransfer.files);
   }
 
-  async function sendToPartner(partner: Partner): Promise<boolean> {
-    const formData = new FormData();
-    formData.append("email", partner.email ?? "");
-    formData.append("partner_name", partner.name);
-    if (partner.contact_person) formData.append("contact_person", partner.contact_person);
-    formData.append("subject", subject.trim());
-    if (link.trim()) formData.append("link", link.trim());
-    formData.append("files_count", String(files.length));
-    files.forEach((file, i) => {
-      formData.append(`file_${i}`, file, file.name);
-    });
+  function buildEmailBody(partner: Partner, fileLinks: { name: string; url: string }[]): string {
+    const name = partner.contact_person || partner.name;
+    const fileListHtml = fileLinks
+      .map((f) => `<li><a href="${f.url}" style="color:#2563eb;text-decoration:underline;">${f.name}</a></li>`)
+      .join("");
+    const linkHtml = link.trim()
+      ? `<p style="margin-top:16px;">Dodatkowy link: <a href="${link.trim()}" style="color:#2563eb;text-decoration:underline;">${link.trim()}</a></p>`
+      : "";
+
+    return `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+        <p>Cześć ${name},</p>
+        <p>Przesyłam pliki dotyczące: <strong>${subject.trim()}</strong></p>
+        <p>W załączniku znajdziesz:</p>
+        <ul>${fileListHtml}</ul>
+        ${linkHtml}
+        <p style="margin-top:24px;">Pozdrawiam,<br/>Zespół</p>
+      </div>
+    `;
+  }
+
+  async function sendToPartner(partner: Partner, fileLinks: { name: string; url: string }[]): Promise<boolean> {
+    const emailBody = buildEmailBody(partner, fileLinks);
 
     try {
-      const res = await fetch(WEBHOOK_URL, { method: "POST", body: formData });
+      const res = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: partner.email ?? "",
+          partner_name: partner.name,
+          contact_person: partner.contact_person ?? "",
+          subject: subject.trim(),
+          email_body: emailBody,
+          link: link.trim() || undefined,
+          files: fileLinks,
+        }),
+      });
       return res.ok;
     } catch {
       return false;
@@ -165,7 +189,8 @@ export default function SendFiles() {
 
     for (const partner of toSend) {
       // Send webhook
-      const ok = await sendToPartner(partner);
+      const fileLinks = uploadedFiles.map((f) => ({ name: f.name, url: f.url }));
+      const ok = await sendToPartner(partner, fileLinks);
       if (ok) {
         results.push(partner.name);
         // Save file records for this partner
