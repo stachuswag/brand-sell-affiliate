@@ -54,6 +54,7 @@ import {
   Package,
   Trash2,
   Users,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
@@ -109,6 +110,16 @@ interface SubPartner {
   contact_person: string | null;
   email: string | null;
   phone: string | null;
+  created_at: string;
+}
+
+interface PartnerFile {
+  id: string;
+  subject: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+  file_type: string | null;
   created_at: string;
 }
 
@@ -175,6 +186,9 @@ export default function AgentDashboard() {
   const [subPartnerOpen, setSubPartnerOpen] = useState(false);
   const [subPartnerForm, setSubPartnerForm] = useState({ name: "", contact_person: "", email: "", phone: "" });
   const [savingSubPartner, setSavingSubPartner] = useState(false);
+
+  // Partner files
+  const [partnerFiles, setPartnerFiles] = useState<PartnerFile[]>([]);
 
   // Delete contact
   const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
