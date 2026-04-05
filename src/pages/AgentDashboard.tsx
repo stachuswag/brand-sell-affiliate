@@ -782,7 +782,65 @@ export default function AgentDashboard() {
             </div>
           </TabsContent>
 
-          {/* SUB-PARTNERS TAB */}
+          {/* FILES TAB */}
+          <TabsContent value="files" className="space-y-4">
+            <Card>
+              <CardContent className="p-0">
+                {partnerFiles.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Download className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Brak plików do pobrania.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Temat</TableHead>
+                          <TableHead>Plik</TableHead>
+                          <TableHead>Rozmiar</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Pobierz</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {partnerFiles.map((f) => (
+                          <TableRow key={f.id}>
+                            <TableCell className="font-medium text-sm">{f.subject}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                                <span className="text-sm truncate max-w-[200px]">{f.file_name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {f.file_size ? (f.file_size < 1024 * 1024 ? `${(f.file_size / 1024).toFixed(1)} KB` : `${(f.file_size / (1024 * 1024)).toFixed(1)} MB`) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {format(new Date(f.created_at), "d MMM yyyy, HH:mm", { locale: pl })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 h-8 text-xs"
+                                asChild
+                              >
+                                <a href={f.file_url} target="_blank" rel="noopener noreferrer" download={f.file_name}>
+                                  <Download className="h-3.5 w-3.5" /> Pobierz
+                                </a>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="sub-partners" className="space-y-4">
             <div className="flex justify-end">
               <Button onClick={() => setSubPartnerOpen(true)} className="gap-2">
