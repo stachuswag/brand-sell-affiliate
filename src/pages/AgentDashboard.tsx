@@ -549,11 +549,12 @@ export default function AgentDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="links">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="links">Moje linki ({links.length})</TabsTrigger>
             <TabsTrigger value="contacts">Klienci ({contacts.length})</TabsTrigger>
             <TabsTrigger value="offers">Oferty ({offers.length})</TabsTrigger>
             <TabsTrigger value="my-offers">Moje oferty ({partnerOffers.length})</TabsTrigger>
+            <TabsTrigger value="files">Pliki ({partnerFiles.length})</TabsTrigger>
             <TabsTrigger value="sub-partners">Moi partnerzy ({subPartners.length})</TabsTrigger>
           </TabsList>
 
