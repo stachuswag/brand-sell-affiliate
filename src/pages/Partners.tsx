@@ -60,7 +60,9 @@ export default function Partners() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
-  
+  const [onboardOfferId, setOnboardOfferId] = useState("");
+  const [onboardEmailType, setOnboardEmailType] = useState<string>("onboard");
+  const [onboardCustomMsg, setOnboardCustomMsg] = useState("");
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
 
@@ -161,21 +163,53 @@ export default function Partners() {
   };
 
   // One button - onboard
-  const openOnboard = (p: Partner) => { setOnboardPartner(p); setOnboardProjectId(""); setOnboardOpen(true); };
+  const openOnboard = (p: Partner) => {
+    setOnboardPartner(p);
+    setOnboardProjectId("");
+    setOnboardOfferId("");
+    setOnboardEmailType("onboard");
+    setOnboardCustomMsg("");
+    setOnboardOpen(true);
+  };
+
   const handleOnboard = async () => {
-    if (!onboardPartner || !onboardProjectId) return;
+    if (!onboardPartner) return;
+    if (onboardEmailType === "onboard" && !onboardProjectId) return;
+    if (onboardEmailType === "offer" && !onboardOfferId) return;
+    if ((onboardEmailType === "proposal" || onboardEmailType === "question") && !onboardCustomMsg.trim()) return;
+
     setOnboarding(true);
     const { data: { session } } = await supabase.auth.getSession();
     try {
+      const payload: Record<string, string | undefined> = {
+        partner_id: onboardPartner.id,
+        email_type: onboardEmailType,
+      };
+      if (onboardProjectId) payload.project_id = onboardProjectId;
+      if (onboardOfferId) payload.offer_id = onboardOfferId;
+      if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
+
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ partner_id: onboardPartner.id, project_id: onboardProjectId }),
+        body: JSON.stringify(payload),
       });
       const result = await res.json();
       if (!res.ok || result.error) toast({ title: "Błąd", description: result.error, variant: "destructive" });
-      else { toast({ title: "Agent onboardowany! 🚀", description: `${onboardPartner.name} został zatwierdzony i powiadomiony` }); setOnboardOpen(false); fetchPartners(); }
-    } catch { toast({ title: "Błąd onboardingu", variant: "destructive" }); }
+      else {
+        const typeLabels: Record<string, string> = {
+          onboard: "Onboarding wysłany! 🚀",
+          offer: "Email o ofercie wysłany! 📋",
+          general: "Email wysłany! ✉️",
+          follow_up: "Follow-up wysłany! 🔄",
+          proposal: "Propozycja wysłana! 💡",
+          question: "Pytanie wysłane! ❓",
+        };
+        toast({ title: typeLabels[onboardEmailType] || "Wysłano!", description: `Email do ${onboardPartner.name} na ${result.email}` });
+        setOnboardOpen(false);
+        fetchPartners();
+      }
+    } catch { toast({ title: "Błąd wysyłki", variant: "destructive" }); }
     setOnboarding(false);
   };
 
@@ -351,37 +385,101 @@ export default function Partners() {
           </DialogContent>
         </Dialog>
 
-        {/* Onboard Dialog - "Jeden Guzik" */}
+        {/* Quick Email Dialog */}
         <Dialog open={onboardOpen} onOpenChange={setOnboardOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>🚀 Onboarduj agenta — {onboardPartner?.name}</DialogTitle>
+              <DialogTitle>📧 Wyślij email — {onboardPartner?.name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Zatwierdź agenta, przypisz go do projektu i wyślij mu linki + materiały przez Make.com.
-              </p>
               <div className="space-y-2">
-                <Label>Projekt inwestycyjny *</Label>
-                <Select value={onboardProjectId} onValueChange={setOnboardProjectId}>
-                  <SelectTrigger><SelectValue placeholder="Wybierz projekt..." /></SelectTrigger>
+                <Label>Typ wiadomości *</Label>
+                <Select value={onboardEmailType} onValueChange={(v) => { setOnboardEmailType(v); setOnboardProjectId(""); setOnboardOfferId(""); setOnboardCustomMsg(""); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {projects.map((pr) => (
-                      <SelectItem key={pr.id} value={pr.id}>
-                        {pr.name} ({pr.cities.join(", ")})
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="onboard">🚀 Onboarding (zatwierdzenie agenta)</SelectItem>
+                    <SelectItem value="offer">📋 Email o ofercie</SelectItem>
+                    <SelectItem value="general">✉️ Podziękowanie za współpracę</SelectItem>
+                    <SelectItem value="follow_up">🔄 Follow-up</SelectItem>
+                    <SelectItem value="proposal">💡 Propozycja</SelectItem>
+                    <SelectItem value="question">❓ Pytanie</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Po kliknięciu "Wyślij" partner otrzyma spersonalizowanego maila z danymi projektu, linkami afiliacyjnymi i materiałami.
-              </p>
+
+              {onboardEmailType === "onboard" && (
+                <div className="space-y-2">
+                  <Label>Projekt inwestycyjny *</Label>
+                  <Select value={onboardProjectId} onValueChange={setOnboardProjectId}>
+                    <SelectTrigger><SelectValue placeholder="Wybierz projekt..." /></SelectTrigger>
+                    <SelectContent>
+                      {projects.map((pr) => (
+                        <SelectItem key={pr.id} value={pr.id}>{pr.name} ({pr.cities.join(", ")})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Zatwierdzi agenta, przypisze do projektu i wyśle linki + materiały.</p>
+                </div>
+              )}
+
+              {onboardEmailType === "offer" && (
+                <div className="space-y-2">
+                  <Label>Oferta *</Label>
+                  <Select value={onboardOfferId} onValueChange={setOnboardOfferId}>
+                    <SelectTrigger><SelectValue placeholder="Wybierz ofertę..." /></SelectTrigger>
+                    <SelectContent>
+                      {allOffers.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>{o.name}{o.city ? ` (${o.city})` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Wyśle szczegóły oferty i link afiliacyjny partnera.</p>
+                </div>
+              )}
+
+              {onboardEmailType === "general" && (
+                <p className="text-sm text-muted-foreground">
+                  Wyśle podziękowanie za współpracę z podsumowaniem ofert, projektów i linków afiliacyjnych.
+                </p>
+              )}
+
+              {(onboardEmailType === "follow_up" || onboardEmailType === "proposal" || onboardEmailType === "question") && (
+                <div className="space-y-2">
+                  <Label>{onboardEmailType === "follow_up" ? "Treść (opcjonalnie)" : "Treść *"}</Label>
+                  <Textarea
+                    value={onboardCustomMsg}
+                    onChange={(e) => setOnboardCustomMsg(e.target.value)}
+                    placeholder={
+                      onboardEmailType === "follow_up" ? "Dodatkowa treść follow-upa..." :
+                      onboardEmailType === "proposal" ? "Opisz propozycję..." :
+                      "Napisz pytanie..."
+                    }
+                    rows={4}
+                  />
+                </div>
+              )}
+
+              <div className="rounded-md bg-muted/50 p-3">
+                <p className="text-xs text-muted-foreground">
+                  📬 Email zostanie wysłany na: <strong>{onboardPartner?.email || "brak emaila!"}</strong>
+                </p>
+              </div>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOnboardOpen(false)}>Anuluj</Button>
-                <Button onClick={handleOnboard} disabled={onboarding || !onboardProjectId} className="gap-1.5">
-                  <Rocket className="h-4 w-4" />
-                  {onboarding ? "Wysyłanie..." : "Zatwierdzić i wyślij"}
+                <Button
+                  onClick={handleOnboard}
+                  disabled={
+                    onboarding ||
+                    !onboardPartner?.email ||
+                    (onboardEmailType === "onboard" && !onboardProjectId) ||
+                    (onboardEmailType === "offer" && !onboardOfferId) ||
+                    ((onboardEmailType === "proposal" || onboardEmailType === "question") && !onboardCustomMsg.trim())
+                  }
+                  className="gap-1.5"
+                >
+                  <Mail className="h-4 w-4" />
+                  {onboarding ? "Wysyłanie..." : "Wyślij email"}
                 </Button>
               </DialogFooter>
             </div>
