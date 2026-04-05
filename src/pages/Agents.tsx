@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, KeyRound, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, KeyRound, Trash2, Eye, EyeOff, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Partner {
@@ -54,6 +54,13 @@ export default function Agents() {
   const [resetPartner, setResetPartner] = useState<Partner | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
+
+  // Send welcome email dialog (after creating account)
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomePartner, setWelcomePartner] = useState<Partner | null>(null);
+  const [welcomeEmail, setWelcomeEmail] = useState("");
+  const [welcomePassword, setWelcomePassword] = useState("");
+  const [sendingWelcome, setSendingWelcome] = useState(false);
 
   const fetchPartners = async () => {
     const { data } = await supabase
@@ -104,11 +111,51 @@ export default function Agents() {
     if (!res.ok || result.error) {
       toast({ title: "Błąd", description: result.error ?? "Nieznany błąd", variant: "destructive" });
     } else {
-      toast({ title: "Konto agenta utworzone!", description: `Login: ${form.email} | Hasło: ${form.password}` });
+      toast({ title: "Konto agenta utworzone!" });
       setOpen(false);
+      // Show welcome email dialog
+      setWelcomePartner(selectedPartner);
+      setWelcomeEmail(form.email);
+      setWelcomePassword(form.password);
+      setWelcomeOpen(true);
       fetchPartners();
     }
     setSaving(false);
+  };
+
+  const handleSendWelcome = async () => {
+    if (!welcomePartner) return;
+    setSendingWelcome(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            partner_id: welcomePartner.id,
+            email_type: "onboard",
+            login_email: welcomeEmail,
+            login_password: welcomePassword,
+          }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        toast({ title: "Błąd wysyłki", description: result.error, variant: "destructive" });
+      } else {
+        toast({ title: "Mail powitalny wysłany! 🚀", description: `Na adres: ${result.email}` });
+      }
+    } catch {
+      toast({ title: "Błąd wysyłki maila", variant: "destructive" });
+    }
+    setSendingWelcome(false);
+    setWelcomeOpen(false);
   };
 
   const openReset = (p: Partner) => {
@@ -314,6 +361,31 @@ export default function Agents() {
                 <Button variant="outline" onClick={() => setResetOpen(false)}>Anuluj</Button>
                 <Button onClick={handleReset} disabled={resetting}>
                   {resetting ? "Zapisywanie..." : "Zmień hasło"}
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Welcome Email Dialog */}
+        <Dialog open={welcomeOpen} onOpenChange={setWelcomeOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>📧 Wysłać mail powitalny?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Konto agenta <strong>{welcomePartner?.name}</strong> zostało utworzone. Czy wysłać mu maila powitalnego z danymi logowania?
+              </p>
+              <div className="rounded-md bg-muted p-3 space-y-1 text-sm">
+                <div><span className="text-muted-foreground">Login:</span> <strong>{welcomeEmail}</strong></div>
+                <div><span className="text-muted-foreground">Hasło:</span> <strong>{welcomePassword}</strong></div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setWelcomeOpen(false)}>Nie</Button>
+                <Button onClick={handleSendWelcome} disabled={sendingWelcome} className="gap-1.5">
+                  <Mail className="h-4 w-4" />
+                  {sendingWelcome ? "Wysyłanie..." : "Tak, wyślij"}
                 </Button>
               </DialogFooter>
             </div>
