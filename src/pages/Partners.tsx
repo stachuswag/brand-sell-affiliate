@@ -174,7 +174,6 @@ export default function Partners() {
 
   const handleOnboard = async () => {
     if (!onboardPartner) return;
-    if (onboardEmailType === "onboard" && !onboardProjectId) return;
     if (onboardEmailType === "offer" && !onboardOfferId) return;
     if ((onboardEmailType === "proposal" || onboardEmailType === "question") && !onboardCustomMsg.trim()) return;
 
@@ -409,16 +408,16 @@ export default function Partners() {
 
               {onboardEmailType === "onboard" && (
                 <div className="space-y-2">
-                  <Label>Projekt inwestycyjny *</Label>
+                  <Label>Projekt inwestycyjny (opcjonalnie)</Label>
                   <Select value={onboardProjectId} onValueChange={setOnboardProjectId}>
-                    <SelectTrigger><SelectValue placeholder="Wybierz projekt..." /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
                     <SelectContent>
                       {projects.map((pr) => (
                         <SelectItem key={pr.id} value={pr.id}>{pr.name} ({pr.cities.join(", ")})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Zatwierdzi agenta, przypisze do projektu i wyśle linki + materiały.</p>
+                  <p className="text-xs text-muted-foreground">Zatwierdzi agenta i wyśle email powitalny. Jeśli wybierzesz projekt — przypisze go i doda materiały.</p>
                 </div>
               )}
 
@@ -472,7 +471,6 @@ export default function Partners() {
                   disabled={
                     onboarding ||
                     !onboardPartner?.email ||
-                    (onboardEmailType === "onboard" && !onboardProjectId) ||
                     (onboardEmailType === "offer" && !onboardOfferId) ||
                     ((onboardEmailType === "proposal" || onboardEmailType === "question") && !onboardCustomMsg.trim())
                   }

@@ -132,33 +132,43 @@ Deno.serve(async (req) => {
 
     // ── ONBOARD ──
     if (email_type === "onboard") {
-      if (!project_id) {
-        return new Response(JSON.stringify({ error: "project_id wymagane dla onboardu" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Update status
+      await adminClient.from("partners").update({ agent_status: "approved" }).eq("id", partner_id);
+
+      // Assign to project if provided
+      if (project_id) {
+        await adminClient.from("partner_projects")
+          .upsert({ partner_id, project_id }, { onConflict: "partner_id,project_id" });
       }
 
-      // Update status + assign project
-      await adminClient.from("partners").update({ agent_status: "approved" }).eq("id", partner_id);
-      await adminClient.from("partner_projects")
-        .upsert({ partner_id, project_id }, { onConflict: "partner_id,project_id" });
-
       const allProjects = await fetchPartnerProjects();
-      const projectsHtml = allProjects.map((p) => {
-        const cities = p.cities?.length ? p.cities.join(", ") : "—";
-        const mat = p.materials_folder_url ? `<br>📁 <a href="${p.materials_folder_url}">Materiały</a>` : "";
-        return `<li><strong>${p.name}</strong> (${cities})${mat}</li>`;
-      }).join("\n");
+      const partnerOffers = await fetchPartnerOffers();
+
+      const projectsHtml = allProjects.length > 0
+        ? allProjects.map((p) => {
+            const cities = p.cities?.length ? p.cities.join(", ") : "—";
+            const mat = p.materials_folder_url ? `<br>📁 <a href="${p.materials_folder_url}">Materiały</a>` : "";
+            return `<li><strong>${p.name}</strong> (${cities})${mat}</li>`;
+          }).join("\n")
+        : "";
+
+      const offersHtml = partnerOffers.length > 0
+        ? partnerOffers.map((o: { name: string; city?: string | null }) =>
+            `<li>${o.name}${o.city ? ` (${o.city})` : ""}</li>`
+          ).join("\n")
+        : "";
 
       emailBody = `${header}
   <h2>Cześć ${firstName}! 👋</h2>
   <p>Miło nam poinformować, że Twoje konto w <strong>Brand and Sell</strong> zostało aktywowane!</p>
-  <p>Twoje inwestycje:</p>
-  <ul>${projectsHtml}</ul>
+  ${projectsHtml ? `<p>Twoje inwestycje:</p><ul>${projectsHtml}</ul>` : ""}
+  ${offersHtml ? `<p>Przypisane oferty:</p><ul>${offersHtml}</ul>` : ""}
   ${linksHtml ? `<p><strong>Twoje linki afiliacyjne:</strong></p><ul>${linksHtml}</ul>
   <p style="font-size:13px;color:#666;">Każde kliknięcie jest automatycznie przypisane do Ciebie.</p>` : ""}
+  ${!projectsHtml && !offersHtml ? `<p>Dziękujemy za dołączenie do naszej sieci partnerskiej!</p>` : ""}
   <p>Pytania? Odpisz na tego maila.</p>
   <p>Powodzenia! 🚀</p>
-${signature}`;
+${signature}`; 
     }
 
     // ── OFFER ──
