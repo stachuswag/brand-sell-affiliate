@@ -21,7 +21,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket } from "lucide-react";
+import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,7 +39,7 @@ interface Partner {
   clay_enriched_at?: string | null; agent_status?: string | null;
 }
 
-const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "" };
+const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "", password: "" };
 
 const emailTypeOptions: { value: OnboardEmailType; label: string; description: string; icon: string }[] = [
   { value: "onboard", label: "Onboarding", description: "zatwierdzenie agenta", icon: "🚀" },
