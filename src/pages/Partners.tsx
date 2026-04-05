@@ -236,6 +236,33 @@ export default function Partners() {
       if (onboardProjectId) payload.project_id = onboardProjectId;
       if (onboardOfferId) payload.offer_id = onboardOfferId;
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
+      // If onboard type, partner has no account yet, and password is provided — create agent account first
+      if (onboardEmailType === "onboard" && onboardPartner.email && onboardPassword && !onboardPartner.agent_user_id) {
+        try {
+          const agentRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+            body: JSON.stringify({
+              action: "create",
+              partner_id: onboardPartner.id,
+              partner_name: onboardPartner.name,
+              email: onboardPartner.email,
+              password: onboardPassword,
+            }),
+          });
+          const agentResult = await agentRes.json();
+          if (!agentRes.ok || agentResult.error) {
+            toast({ title: "Błąd tworzenia konta", description: agentResult.error, variant: "destructive" });
+            setOnboarding(false);
+            return;
+          }
+        } catch {
+          toast({ title: "Błąd tworzenia konta agenta", variant: "destructive" });
+          setOnboarding(false);
+          return;
+        }
+      }
+
       if (onboardEmailType === "onboard" && onboardPartner.email) {
         payload.login_email = onboardPartner.email;
         if (onboardPassword) payload.login_password = onboardPassword;
