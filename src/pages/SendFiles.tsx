@@ -141,12 +141,45 @@ export default function SendFiles() {
     setSending(true);
     setSentPartners([]);
 
+    // 1. Upload files to storage once
+    const uploadedFiles: { name: string; url: string; size: number; type: string }[] = [];
+    for (const file of files) {
+      const path = `${Date.now()}-${file.name}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("partner-files")
+        .upload(path, file);
+      if (uploadErr) {
+        toast({ title: "Błąd uploadu", description: `${file.name}: ${uploadErr.message}`, variant: "destructive" });
+        setSending(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("partner-files").getPublicUrl(path);
+      uploadedFiles.push({ name: file.name, url: urlData.publicUrl, size: file.size, type: file.type });
+    }
+
+    // 2. Get current user id
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
     const toSend = partners.filter((p) => selectedPartners.has(p.id) && p.email);
     const results: string[] = [];
 
     for (const partner of toSend) {
+      // Send webhook
       const ok = await sendToPartner(partner);
-      if (ok) results.push(partner.name);
+      if (ok) {
+        results.push(partner.name);
+        // Save file records for this partner
+        const records = uploadedFiles.map((f) => ({
+          partner_id: partner.id,
+          subject: subject.trim(),
+          file_name: f.name,
+          file_url: f.url,
+          file_size: f.size,
+          file_type: f.type,
+          sent_by: currentUser?.id ?? null,
+        }));
+        await supabase.from("partner_files").insert(records);
+      }
     }
 
     setSentPartners(results);
@@ -157,7 +190,6 @@ export default function SendFiles() {
         title: "Wysłano pomyślnie!",
         description: `Pliki wysłane do ${results.length} partnera(ów).`,
       });
-      // Reset
       setFiles([]);
       setLink("");
       setSubject("");
