@@ -393,7 +393,7 @@ export default function SendFiles() {
               </div>
               <Button
                 onClick={handleSend}
-                disabled={sending || files.length === 0 || selectedPartners.size === 0}
+                disabled={sending || files.length === 0 || selectedPartners.size === 0 || !subject.trim()}
                 className="gap-2 min-w-32"
               >
                 {sending ? (
