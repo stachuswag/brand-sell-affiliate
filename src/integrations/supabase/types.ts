@@ -581,6 +581,7 @@ export type Database = {
           instagram_url: string | null
           is_active: boolean
           linkedin_url: string | null
+          login_email: string | null
           name: string
           notes: string | null
           parent_partner_id: string | null
@@ -602,6 +603,7 @@ export type Database = {
           instagram_url?: string | null
           is_active?: boolean
           linkedin_url?: string | null
+          login_email?: string | null
           name: string
           notes?: string | null
           parent_partner_id?: string | null
@@ -623,6 +625,7 @@ export type Database = {
           instagram_url?: string | null
           is_active?: boolean
           linkedin_url?: string | null
+          login_email?: string | null
           name?: string
           notes?: string | null
           parent_partner_id?: string | null
