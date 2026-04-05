@@ -83,6 +83,7 @@ export default function Partners() {
   const [onboardOfferId, setOnboardOfferId] = useState("");
   const [onboardEmailType, setOnboardEmailType] = useState<OnboardEmailType>("onboard");
   const [onboardCustomMsg, setOnboardCustomMsg] = useState("");
+  const [onboardPassword, setOnboardPassword] = useState("");
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -211,6 +212,7 @@ export default function Partners() {
     setOnboardOfferId("");
     setOnboardEmailType(type);
     setOnboardCustomMsg("");
+    setOnboardPassword("");
   };
 
   const openOnboard = (p: Partner) => {
@@ -234,6 +236,10 @@ export default function Partners() {
       if (onboardProjectId) payload.project_id = onboardProjectId;
       if (onboardOfferId) payload.offer_id = onboardOfferId;
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
+      if (onboardEmailType === "onboard" && onboardPartner.email) {
+        payload.login_email = onboardPartner.email;
+        if (onboardPassword) payload.login_password = onboardPassword;
+      }
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`, {
         method: "POST",
