@@ -250,7 +250,30 @@ export default function SendFiles() {
               </CardContent>
             </Card>
 
-            {/* Optional link */}
+            {/* Subject */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Temat wiadomości
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1.5">
+                  <Label htmlFor="subject" className="text-xs text-muted-foreground">
+                    O czym są te pliki? (wymagane)
+                  </Label>
+                  <Input
+                    id="subject"
+                    placeholder="np. Materiały marketingowe - Osiedle Parkowe"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    required
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
