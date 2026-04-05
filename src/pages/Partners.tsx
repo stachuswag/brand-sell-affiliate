@@ -60,7 +60,7 @@ export default function Partners() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
-  const [onboardWebhookUrl, setOnboardWebhookUrl] = useState("");
+  
   const [onboarding, setOnboarding] = useState(false);
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
 
@@ -161,7 +161,7 @@ export default function Partners() {
   };
 
   // One button - onboard
-  const openOnboard = (p: Partner) => { setOnboardPartner(p); setOnboardProjectId(""); setOnboardWebhookUrl(""); setOnboardOpen(true); };
+  const openOnboard = (p: Partner) => { setOnboardPartner(p); setOnboardProjectId(""); setOnboardOpen(true); };
   const handleOnboard = async () => {
     if (!onboardPartner || !onboardProjectId) return;
     setOnboarding(true);
@@ -170,7 +170,7 @@ export default function Partners() {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ partner_id: onboardPartner.id, project_id: onboardProjectId, webhook_url: onboardWebhookUrl || undefined }),
+        body: JSON.stringify({ partner_id: onboardPartner.id, project_id: onboardProjectId }),
       });
       const result = await res.json();
       if (!res.ok || result.error) toast({ title: "Błąd", description: result.error, variant: "destructive" });
@@ -374,17 +374,9 @@ export default function Partners() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Webhook Make.com (opcjonalnie)</Label>
-                <Input
-                  value={onboardWebhookUrl}
-                  onChange={(e) => setOnboardWebhookUrl(e.target.value)}
-                  placeholder="https://hook.eu2.make.com/..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Jeśli podasz URL, Make.com otrzyma dane agenta, projekt, linki afiliacyjne i materiały.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Po kliknięciu "Wyślij" partner otrzyma spersonalizowanego maila z danymi projektu, linkami afiliacyjnymi i materiałami.
+              </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOnboardOpen(false)}>Anuluj</Button>
                 <Button onClick={handleOnboard} disabled={onboarding || !onboardProjectId} className="gap-1.5">
