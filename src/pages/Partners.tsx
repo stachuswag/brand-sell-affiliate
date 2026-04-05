@@ -163,21 +163,53 @@ export default function Partners() {
   };
 
   // One button - onboard
-  const openOnboard = (p: Partner) => { setOnboardPartner(p); setOnboardProjectId(""); setOnboardOpen(true); };
+  const openOnboard = (p: Partner) => {
+    setOnboardPartner(p);
+    setOnboardProjectId("");
+    setOnboardOfferId("");
+    setOnboardEmailType("onboard");
+    setOnboardCustomMsg("");
+    setOnboardOpen(true);
+  };
+
   const handleOnboard = async () => {
-    if (!onboardPartner || !onboardProjectId) return;
+    if (!onboardPartner) return;
+    if (onboardEmailType === "onboard" && !onboardProjectId) return;
+    if (onboardEmailType === "offer" && !onboardOfferId) return;
+    if ((onboardEmailType === "proposal" || onboardEmailType === "question") && !onboardCustomMsg.trim()) return;
+
     setOnboarding(true);
     const { data: { session } } = await supabase.auth.getSession();
     try {
+      const payload: Record<string, string | undefined> = {
+        partner_id: onboardPartner.id,
+        email_type: onboardEmailType,
+      };
+      if (onboardProjectId) payload.project_id = onboardProjectId;
+      if (onboardOfferId) payload.offer_id = onboardOfferId;
+      if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
+
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-onboard`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ partner_id: onboardPartner.id, project_id: onboardProjectId }),
+        body: JSON.stringify(payload),
       });
       const result = await res.json();
       if (!res.ok || result.error) toast({ title: "Błąd", description: result.error, variant: "destructive" });
-      else { toast({ title: "Agent onboardowany! 🚀", description: `${onboardPartner.name} został zatwierdzony i powiadomiony` }); setOnboardOpen(false); fetchPartners(); }
-    } catch { toast({ title: "Błąd onboardingu", variant: "destructive" }); }
+      else {
+        const typeLabels: Record<string, string> = {
+          onboard: "Onboarding wysłany! 🚀",
+          offer: "Email o ofercie wysłany! 📋",
+          general: "Email wysłany! ✉️",
+          follow_up: "Follow-up wysłany! 🔄",
+          proposal: "Propozycja wysłana! 💡",
+          question: "Pytanie wysłane! ❓",
+        };
+        toast({ title: typeLabels[onboardEmailType] || "Wysłano!", description: `Email do ${onboardPartner.name} na ${result.email}` });
+        setOnboardOpen(false);
+        fetchPartners();
+      }
+    } catch { toast({ title: "Błąd wysyłki", variant: "destructive" }); }
     setOnboarding(false);
   };
 
