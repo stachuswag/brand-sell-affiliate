@@ -968,73 +968,150 @@ export default function AgentDashboard() {
         </Tabs>
 
         {/* Add Contact Dialog */}
-        <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+        <Dialog open={contactOpen} onOpenChange={(open) => {
+          setContactOpen(open);
+          if (!open) {
+            setSoftCheckStep("check");
+            setSoftCheckName("");
+            setSoftCheckPhone("");
+            setSoftCheckResult(null);
+            setRodoConsent(false);
+            setContactForm({ full_name: "", email: "", phone: "", message: "", link_id: "" });
+          }
+        }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Dodaj klienta ręcznie</DialogTitle>
+              <DialogTitle>
+                {softCheckStep === "check" ? "Weryfikacja klienta" : "Dodaj klienta ręcznie"}
+              </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleAddContact} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Imię i nazwisko *</Label>
-                <Input
-                  value={contactForm.full_name}
-                  onChange={(e) => setContactForm({ ...contactForm, full_name: e.target.value })}
-                  placeholder="Jan Kowalski"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+
+            {softCheckStep === "check" ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Sprawdź czy klient nie jest już w bazie. Podaj imię i 4 ostatnie cyfry telefonu.
+                </p>
                 <div className="space-y-2">
-                  <Label>Email</Label>
+                  <Label>Imię klienta *</Label>
                   <Input
-                    type="email"
-                    value={contactForm.email}
-                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                    placeholder="jan@email.com"
+                    value={softCheckName}
+                    onChange={(e) => { setSoftCheckName(e.target.value); setSoftCheckResult(null); }}
+                    placeholder="Jan"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefon</Label>
+                  <Label>4 ostatnie cyfry telefonu *</Label>
                   <Input
-                    value={contactForm.phone}
-                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                    placeholder="+48 500 000 000"
+                    value={softCheckPhone}
+                    onChange={(e) => { setSoftCheckPhone(e.target.value.replace(/\D/g, "").slice(0, 4)); setSoftCheckResult(null); }}
+                    placeholder="1234"
+                    maxLength={4}
                   />
                 </div>
+
+                {softCheckResult === "duplicate" && (
+                  <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-destructive text-sm">Klient już istnieje w bazie!</p>
+                      <p className="text-xs text-muted-foreground mt-1">Nie możesz zarejestrować tego klienta ponownie.</p>
+                    </div>
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setContactOpen(false)}>Anuluj</Button>
+                  <Button
+                    onClick={handleSoftCheck}
+                    disabled={softCheckLoading || softCheckName.trim().length === 0 || softCheckPhone.length < 4}
+                    className="gap-2"
+                  >
+                    {softCheckLoading ? "Sprawdzanie..." : <><Search className="h-4 w-4" /> Sprawdź</>}
+                  </Button>
+                </DialogFooter>
               </div>
-              {links.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Przypisz do linku (opcjonalnie)</Label>
-                  <Select value={contactForm.link_id} onValueChange={(v) => setContactForm({ ...contactForm, link_id: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Automatycznie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {links.map((l) => (
-                        <SelectItem key={l.id} value={l.id}>
-                          {l.tracking_code}{l.property_name ? ` — ${l.property_name}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            ) : (
+              <form onSubmit={handleAddContact} className="space-y-4">
+                <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 p-3 dark:bg-green-950/20 dark:border-green-800">
+                  <ShieldCheck className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-green-700 dark:text-green-400">Klient zweryfikowany — nie znaleziono w bazie.</p>
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label>Wiadomość / Notatka</Label>
-                <Textarea
-                  value={contactForm.message}
-                  onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                  placeholder="Notatka o kliencie..."
-                  rows={3}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setContactOpen(false)}>Anuluj</Button>
-                <Button type="submit" disabled={savingContact || !contactForm.full_name}>
-                  {savingContact ? "Dodawanie..." : "Dodaj klienta"}
-                </Button>
-              </DialogFooter>
-            </form>
+                <div className="space-y-2">
+                  <Label>Imię i nazwisko *</Label>
+                  <Input
+                    value={contactForm.full_name}
+                    onChange={(e) => setContactForm({ ...contactForm, full_name: e.target.value })}
+                    placeholder="Jan Kowalski"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                      placeholder="jan@email.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefon</Label>
+                    <Input
+                      value={contactForm.phone}
+                      onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                      placeholder="+48 500 000 000"
+                    />
+                  </div>
+                </div>
+                {links.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Przypisz do linku (opcjonalnie)</Label>
+                    <Select value={contactForm.link_id} onValueChange={(v) => setContactForm({ ...contactForm, link_id: v })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Automatycznie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {links.map((l) => (
+                          <SelectItem key={l.id} value={l.id}>
+                            {l.tracking_code}{l.property_name ? ` — ${l.property_name}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>Wiadomość / Notatka</Label>
+                  <Textarea
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                    placeholder="Notatka o kliencie..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* RODO consent checkbox */}
+                <div className="flex items-start gap-3 rounded-lg border p-3">
+                  <Checkbox
+                    id="rodo-consent"
+                    checked={rodoConsent}
+                    onCheckedChange={(checked) => setRodoConsent(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor="rodo-consent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                    Oświadczam, że posiadam zgodę klienta na przekazanie jego danych osobowych w celu kontaktu handlowego (RODO). *
+                  </label>
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setSoftCheckStep("check")}>Wróć</Button>
+                  <Button type="submit" disabled={savingContact || !contactForm.full_name || !rodoConsent}>
+                    {savingContact ? "Dodawanie..." : "Dodaj klienta"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
 
