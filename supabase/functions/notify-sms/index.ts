@@ -25,22 +25,13 @@ Deno.serve(async (req) => {
     }
 
     const sourceMap: Record<string, string> = {
-      link_afiliacyjny: "Link afiliacyjny",
-      landing_page: "Landing page",
-      rejestracja_manualna: "Rejestracja manualna",
-      test_manual: "Test",
+      link_afiliacyjny: "link",
+      landing_page: "landing page",
+      rejestracja_manualna: "panel agenta",
+      test_manual: "test",
     };
 
-    const parts = [
-      `Nowy lead: ${full_name}`,
-      phone ? `Tel: ${phone}` : null,
-      email ? `Email: ${email}` : null,
-      partner_name ? `Partner: ${partner_name}` : null,
-      offer_name ? `Oferta: ${offer_name}` : null,
-      `Źródło: ${sourceMap[source] || source || "nieznane"}`,
-    ].filter(Boolean);
-
-    const sms_message = parts.join(" | ");
+    const sms_message = `🚨 NOWY LEAD - Brand & Sell!\n👤 ${full_name}\n📞 ${phone || "brak"}\n📧 ${email || "brak"}${partner_name ? `\n🤝 Partner: ${partner_name}` : ""}${offer_name ? `\n🏠 Oferta: ${offer_name}` : ""}\n📍 Źródło: ${sourceMap[source] || source || "nieznane"}`;
 
     const payload = { sms_message };
 
