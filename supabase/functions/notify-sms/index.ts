@@ -15,13 +15,28 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { full_name, email, phone, source, partner_name, offer_name } = body;
+    const { full_name, email, phone, source, partner_name, offer_name, partner_id } = body;
 
     if (!full_name) {
       return new Response(JSON.stringify({ error: "full_name wymagane" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Fetch partner phone from DB if partner_id provided
+    let agent_phone = "";
+    if (partner_id) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: partner } = await adminClient
+        .from("partners")
+        .select("phone")
+        .eq("id", partner_id)
+        .single();
+      agent_phone = partner?.phone || "";
     }
 
     const sourceMap: Record<string, string> = {
@@ -33,7 +48,7 @@ Deno.serve(async (req) => {
 
     const sms_message = `🚨 NOWY LEAD - Brand & Sell!\n👤 ${full_name}\n📞 ${phone || "brak"}\n📧 ${email || "brak"}${partner_name ? `\n🤝 Partner: ${partner_name}` : ""}${offer_name ? `\n🏠 Oferta: ${offer_name}` : ""}\n📍 Źródło: ${sourceMap[source] || source || "nieznane"}`;
 
-    const payload = { sms_message };
+    const payload = { sms_message, agent_phone };
 
     console.log("Sending SMS webhook:", JSON.stringify(payload));
 
