@@ -178,6 +178,7 @@ export default function LandingPageView() {
           source: "landing_page",
           partner_name: linkInfo?.partners?.name || "",
           offer_name: page?.title || "",
+          partner_id: linkInfo?.partner_id || "",
         },
       }).catch(() => {});
     }
