@@ -62,6 +62,7 @@ interface LinkInfo {
   id: string;
   tracking_code: string;
   property_name: string | null;
+  partner_id: string;
   partners: { name: string } | null;
 }
 
@@ -114,7 +115,7 @@ export default function LandingPageView() {
         // Could be a tracking code OR a slug — check affiliate_links first
         const { data: link } = await supabase
           .from("affiliate_links")
-          .select("id, tracking_code, property_name, landing_page_id, partners(name)")
+          .select("id, tracking_code, property_name, landing_page_id, partner_id, partners(name)")
           .eq("tracking_code", id)
           .eq("is_active", true)
           .maybeSingle();
@@ -177,6 +178,7 @@ export default function LandingPageView() {
           source: "landing_page",
           partner_name: linkInfo?.partners?.name || "",
           offer_name: page?.title || "",
+          partner_id: linkInfo?.partner_id || "",
         },
       }).catch(() => {});
     }

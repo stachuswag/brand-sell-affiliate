@@ -16,6 +16,7 @@ interface LinkInfo {
   property_name: string | null;
   landing_page_id: string | null;
   is_active: boolean;
+  partner_id: string;
   partners: { name: string } | null;
 }
 
@@ -36,7 +37,7 @@ export default function TrackingRedirect() {
 
       const { data: link } = await supabase
         .from("affiliate_links")
-        .select("id, tracking_code, destination_url, property_name, landing_page_id, is_active, partners(name)")
+        .select("id, tracking_code, destination_url, property_name, landing_page_id, is_active, partner_id, partners(name)")
         .eq("tracking_code", code)
         .maybeSingle();
 
@@ -100,6 +101,7 @@ export default function TrackingRedirect() {
           source: "link_afiliacyjny",
           partner_name: linkInfo?.partners?.name || "",
           offer_name: linkInfo?.property_name || "",
+          partner_id: linkInfo?.partner_id || "",
         },
       }).catch(() => {});
     }

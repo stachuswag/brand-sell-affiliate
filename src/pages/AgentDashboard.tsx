@@ -395,6 +395,7 @@ export default function AgentDashboard() {
           phone: contactForm.phone,
           source: "rejestracja_manualna",
           partner_name: partnerName || "",
+          partner_id: partnerId || "",
         },
       }).catch(() => {});
       setContactOpen(false);
