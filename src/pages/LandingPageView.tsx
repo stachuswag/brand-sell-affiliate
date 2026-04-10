@@ -5,6 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Home,
   MapPin,
   Star,
@@ -23,6 +29,7 @@ import {
   User,
   CheckCircle2,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -85,6 +92,8 @@ export default function LandingPageView() {
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", message: "" });
   const [saving, setSaving] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateUnlocked, setGateUnlocked] = useState(false);
 
   useEffect(() => {
     const loadPage = async (query: { id?: string; slug?: string }) => {
@@ -157,6 +166,8 @@ export default function LandingPageView() {
       toast({ title: "Błąd", description: "Nie udało się wysłać formularza.", variant: "destructive" });
     } else {
       setSubmitted(true);
+      setGateUnlocked(true);
+      setGateOpen(false);
     }
   };
 
@@ -272,7 +283,7 @@ export default function LandingPageView() {
           )}
 
           <button
-            onClick={() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => setGateOpen(true)}
             className="mt-10 inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105"
             style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
           >
@@ -324,17 +335,30 @@ export default function LandingPageView() {
 
       {/* Description */}
       {(content.description || page.description) && (
-        <section className="py-16 px-6 max-w-4xl mx-auto text-center">
-          <p className="text-lg text-slate-300 leading-relaxed">
-            {content.description ?? page.description}
-          </p>
+        <section className={cn("py-16 px-6 max-w-4xl mx-auto text-center relative", !gateUnlocked && "select-none")}>
+          <div className={cn(!gateUnlocked && "blur-sm")}>
+            <p className="text-lg text-slate-300 leading-relaxed">
+              {content.description ?? page.description}
+            </p>
+          </div>
+          {!gateUnlocked && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <button
+                onClick={() => setGateOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105"
+                style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
+              >
+                <Lock className="h-4 w-4" /> Wypełnij formularz, aby zobaczyć więcej
+              </button>
+            </div>
+          )}
         </section>
       )}
 
       {/* Features */}
       {content.features && content.features.length > 0 && (
-        <section className="py-16 px-6 max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className={cn("py-16 px-6 max-w-6xl mx-auto relative", !gateUnlocked && "select-none")}>
+          <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6", !gateUnlocked && "blur-sm pointer-events-none")}>
             {content.features.map((f, i) => {
               const Icon = ICON_MAP[f.icon] ?? Home;
               return (
@@ -354,102 +378,118 @@ export default function LandingPageView() {
               );
             })}
           </div>
+          {!gateUnlocked && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <button
+                onClick={() => setGateOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105"
+                style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
+              >
+                <Lock className="h-4 w-4" /> Zostaw dane, aby odblokować szczegóły
+              </button>
+            </div>
+          )}
         </section>
       )}
 
-      {/* Contact Form */}
-      <section id="contact-form" className="py-20 px-6">
-        <div className="max-w-lg mx-auto">
-          <div className="rounded-3xl bg-slate-900 border border-slate-800 p-8 shadow-2xl">
-            <div className="text-center mb-8">
-              <div
-                className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4"
-                style={{ background: `${accentColor}20` }}
-              >
-                <MessageSquare className="h-5 w-5" style={{ color: accentColor }} />
+      {/* Contact Form (visible only when unlocked, otherwise shown as gate popup) */}
+      {gateUnlocked && (
+        <section id="contact-form" className="py-20 px-6">
+          <div className="max-w-lg mx-auto">
+            <div className="rounded-3xl bg-slate-900 border border-slate-800 p-8 shadow-2xl text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/20 text-green-400 mx-auto mb-6">
+                <CheckCircle2 className="h-8 w-8" />
               </div>
-              <h2 className="text-2xl font-bold text-white">
-                {content.contact_title ?? "Skontaktuj się z nami"}
-              </h2>
-              <p className="text-slate-400 mt-2 text-sm">
-                {content.contact_description ?? "Wypełnij formularz, a nasz doradca skontaktuje się z Tobą w ciągu 24 godzin."}
+              <h2 className="text-2xl font-bold text-white">Dziękujemy za zainteresowanie!</h2>
+              <p className="text-slate-400 mt-3 text-sm">
+                Nasz doradca skontaktuje się z Tobą wkrótce.
               </p>
             </div>
+          </div>
+        </section>
+      )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Gate Popup Dialog */}
+      <Dialog open={gateOpen} onOpenChange={setGateOpen}>
+        <DialogContent className="max-w-md border-slate-800 bg-slate-900 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" style={{ color: accentColor }} />
+              {content.contact_title ?? "Zostaw swoje dane"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-400 text-sm">
+            {content.contact_description ?? "Wypełnij formularz, aby zobaczyć pełne szczegóły oferty. Nasz doradca skontaktuje się z Tobą w ciągu 24 godzin."}
+          </p>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="gate-name" className="text-slate-300 flex items-center gap-1.5 text-sm">
+                <User className="h-3.5 w-3.5" /> Imię i nazwisko *
+              </Label>
+              <Input
+                id="gate-name"
+                value={form.full_name}
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                placeholder="Jan Kowalski"
+                required
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="lp-name" className="text-slate-300 flex items-center gap-1.5 text-sm">
-                  <User className="h-3.5 w-3.5" /> Imię i nazwisko *
+                <Label htmlFor="gate-email" className="text-slate-300 flex items-center gap-1.5 text-sm">
+                  <Mail className="h-3.5 w-3.5" /> Email
                 </Label>
                 <Input
-                  id="lp-name"
-                  value={form.full_name}
-                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                  placeholder="Jan Kowalski"
-                  required
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
+                  id="gate-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="jan@email.com"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="lp-email" className="text-slate-300 flex items-center gap-1.5 text-sm">
-                    <Mail className="h-3.5 w-3.5" /> Email
-                  </Label>
-                  <Input
-                    id="lp-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="jan@email.com"
-                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lp-phone" className="text-slate-300 flex items-center gap-1.5 text-sm">
-                    <Phone className="h-3.5 w-3.5" /> Telefon
-                  </Label>
-                  <Input
-                    id="lp-phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder="+48 123 456 789"
-                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="lp-message" className="text-slate-300 flex items-center gap-1.5 text-sm">
-                  <MessageSquare className="h-3.5 w-3.5" /> Wiadomość
+                <Label htmlFor="gate-phone" className="text-slate-300 flex items-center gap-1.5 text-sm">
+                  <Phone className="h-3.5 w-3.5" /> Telefon
                 </Label>
-                <Textarea
-                  id="lp-message"
-                  value={form.message}
-                  onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  placeholder="Opisz swoje potrzeby, preferowany termin kontaktu..."
-                  rows={3}
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 resize-none"
+                <Input
+                  id="gate-phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="+48 123 456 789"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
-
-              <button
-                type="submit"
-                disabled={saving || !form.full_name.trim()}
-                className="w-full rounded-xl px-6 py-3.5 font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
-              >
-                {saving ? "Wysyłanie..." : (content.cta_text ?? "Wyślij zapytanie")}
-              </button>
-
-              <p className="text-xs text-center text-slate-500">
-                Wypełniając formularz zgadzasz się na kontakt ze strony Brand and Sell.
-              </p>
-            </form>
-          </div>
-        </div>
-      </section>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gate-message" className="text-slate-300 flex items-center gap-1.5 text-sm">
+                <MessageSquare className="h-3.5 w-3.5" /> Wiadomość
+              </Label>
+              <Textarea
+                id="gate-message"
+                value={form.message}
+                onChange={(e) => setForm({ ...form, message: e.target.value })}
+                placeholder="Opisz swoje potrzeby..."
+                rows={3}
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 resize-none"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={saving || !form.full_name.trim()}
+              className="w-full rounded-xl px-6 py-3.5 font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
+            >
+              {saving ? "Wysyłanie..." : (content.cta_text ?? "Wyślij i odblokuj szczegóły")}
+            </button>
+            <p className="text-xs text-center text-slate-500">
+              Wypełniając formularz zgadzasz się na kontakt ze strony Brand and Sell.
+            </p>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-slate-800 text-center">
