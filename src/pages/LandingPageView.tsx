@@ -166,6 +166,8 @@ export default function LandingPageView() {
       toast({ title: "Błąd", description: "Nie udało się wysłać formularza.", variant: "destructive" });
     } else {
       setSubmitted(true);
+      setGateUnlocked(true);
+      setGateOpen(false);
     }
   };
 
