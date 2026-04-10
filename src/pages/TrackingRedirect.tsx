@@ -101,6 +101,7 @@ export default function TrackingRedirect() {
           source: "link_afiliacyjny",
           partner_name: linkInfo?.partners?.name || "",
           offer_name: linkInfo?.property_name || "",
+          partner_id: linkInfo?.partner_id || "",
         },
       }).catch(() => {});
     }
