@@ -193,6 +193,16 @@ export default function AgentDashboard() {
   // Delete contact
   const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
 
+  // Soft check state
+  const [softCheckStep, setSoftCheckStep] = useState<"check" | "form">("check");
+  const [softCheckName, setSoftCheckName] = useState("");
+  const [softCheckPhone, setSoftCheckPhone] = useState("");
+  const [softCheckLoading, setSoftCheckLoading] = useState(false);
+  const [softCheckResult, setSoftCheckResult] = useState<"ok" | "duplicate" | null>(null);
+
+  // RODO consent
+  const [rodoConsent, setRodoConsent] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     loadAgentData();
@@ -305,9 +315,34 @@ export default function AgentDashboard() {
     toast({ title: "Link skopiowany!" });
   };
 
+  const handleSoftCheck = async () => {
+    if (!softCheckName.trim() || softCheckPhone.trim().length < 4) {
+      toast({ title: "Uzupełnij dane", description: "Podaj imię i 4 ostatnie cyfry telefonu.", variant: "destructive" });
+      return;
+    }
+    setSoftCheckLoading(true);
+    const last4 = softCheckPhone.trim().slice(-4);
+
+    const { data: existing } = await supabase
+      .from("contacts")
+      .select("id, full_name, phone")
+      .ilike("full_name", `%${softCheckName.trim()}%`)
+      .like("phone", `%${last4}`);
+
+    setSoftCheckLoading(false);
+
+    if (existing && existing.length > 0) {
+      setSoftCheckResult("duplicate");
+    } else {
+      setSoftCheckResult("ok");
+      setSoftCheckStep("form");
+      setContactForm({ ...contactForm, full_name: softCheckName.trim(), phone: "" });
+    }
+  };
+
   const handleAddContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactForm.full_name || !partnerId) return;
+    if (!contactForm.full_name || !partnerId || !rodoConsent) return;
     setSavingContact(true);
 
     // Use selected link or first available; if none, create a temporary "manual" link
