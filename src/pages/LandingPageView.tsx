@@ -283,7 +283,7 @@ export default function LandingPageView() {
           )}
 
           <button
-            onClick={() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => setGateOpen(true)}
             className="mt-10 inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105"
             style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
           >
