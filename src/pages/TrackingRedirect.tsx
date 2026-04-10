@@ -91,6 +91,17 @@ export default function TrackingRedirect() {
       toast({ title: "Błąd", description: "Nie udało się wysłać formularza. Spróbuj ponownie.", variant: "destructive" });
     } else {
       setSubmitted(true);
+      // Send SMS notification
+      supabase.functions.invoke("notify-sms", {
+        body: {
+          full_name: form.full_name,
+          email: form.email,
+          phone: form.phone,
+          source: "link_afiliacyjny",
+          partner_name: linkInfo?.partners?.name || "",
+          offer_name: linkInfo?.property_name || "",
+        },
+      }).catch(() => {});
     }
   };
 

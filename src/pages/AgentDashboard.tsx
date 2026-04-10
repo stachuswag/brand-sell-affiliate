@@ -387,6 +387,16 @@ export default function AgentDashboard() {
       toast({ title: "Błąd", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Klient dodany!", description: "Powiadomienie wysłane do admina." });
+      // Send SMS notification
+      supabase.functions.invoke("notify-sms", {
+        body: {
+          full_name: contactForm.full_name,
+          email: contactForm.email,
+          phone: contactForm.phone,
+          source: "rejestracja_manualna",
+          partner_name: partnerName || "",
+        },
+      }).catch(() => {});
       setContactOpen(false);
       setContactForm({ full_name: "", email: "", phone: "", message: "", link_id: "" });
       loadAgentData();
