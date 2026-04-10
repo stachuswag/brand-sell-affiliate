@@ -168,6 +168,17 @@ export default function LandingPageView() {
       setSubmitted(true);
       setGateUnlocked(true);
       setGateOpen(false);
+      // Send SMS notification
+      supabase.functions.invoke("notify-sms", {
+        body: {
+          full_name: form.full_name,
+          email: form.email,
+          phone: form.phone,
+          source: "landing_page",
+          partner_name: linkInfo?.partners?.name || "",
+          offer_name: page?.title || "",
+        },
+      }).catch(() => {});
     }
   };
 
