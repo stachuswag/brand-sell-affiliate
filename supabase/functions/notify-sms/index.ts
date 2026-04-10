@@ -24,15 +24,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    const payload = {
-      full_name,
-      email: email || "",
-      phone: phone || "",
-      source: source || "unknown",
-      partner_name: partner_name || "",
-      offer_name: offer_name || "",
-      timestamp: new Date().toISOString(),
+    const sourceMap: Record<string, string> = {
+      link_afiliacyjny: "Link afiliacyjny",
+      landing_page: "Landing page",
+      rejestracja_manualna: "Rejestracja manualna",
+      test_manual: "Test",
     };
+
+    const parts = [
+      `Nowy lead: ${full_name}`,
+      phone ? `Tel: ${phone}` : null,
+      email ? `Email: ${email}` : null,
+      partner_name ? `Partner: ${partner_name}` : null,
+      offer_name ? `Oferta: ${offer_name}` : null,
+      `Źródło: ${sourceMap[source] || source || "nieznane"}`,
+    ].filter(Boolean);
+
+    const sms_message = parts.join(" | ");
+
+    const payload = { sms_message };
 
     console.log("Sending SMS webhook:", JSON.stringify(payload));
 
