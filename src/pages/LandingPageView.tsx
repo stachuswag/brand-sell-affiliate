@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
   Home,
   MapPin,
   Star,
@@ -28,6 +29,7 @@ import {
   User,
   CheckCircle2,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
