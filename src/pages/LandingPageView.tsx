@@ -92,6 +92,8 @@ export default function LandingPageView() {
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", message: "" });
   const [saving, setSaving] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateUnlocked, setGateUnlocked] = useState(false);
 
   useEffect(() => {
     const loadPage = async (query: { id?: string; slug?: string }) => {
