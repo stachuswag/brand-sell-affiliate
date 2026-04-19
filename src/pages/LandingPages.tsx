@@ -33,6 +33,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import {
   Plus,
   Pencil,
   Trash2,
@@ -43,10 +47,32 @@ import {
   X,
   Eye,
   Loader2,
+  Palette,
+  Type,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
+
+interface LandingContent {
+  headline?: string;
+  subheadline?: string;
+  description?: string;
+  features?: { icon: string; title: string; description: string }[];
+  cta_text?: string;
+  cta_description?: string;
+  contact_title?: string;
+  contact_description?: string;
+  footer_text?: string;
+  benefits?: string[];
+  accent_color?: string;
+  bg_color?: string;
+  text_color?: string;
+  font_family?: string;
+  hero_overlay_opacity?: number;
+  hero_bg_type?: "image" | "color" | "gradient";
+  theme?: string;
+}
 
 interface LandingPage {
   id: string;
@@ -54,7 +80,7 @@ interface LandingPage {
   slug: string | null;
   description: string | null;
   ai_prompt: string | null;
-  generated_content: Record<string, unknown> | null;
+  generated_content: LandingContent | null;
   hero_image_url: string | null;
   images: string[];
   is_published: boolean;
@@ -65,6 +91,32 @@ const emptyForm = {
   title: "",
   description: "",
   ai_prompt: "",
+};
+
+const DEFAULT_CONTENT: LandingContent = {
+  accent_color: "#b8972c",
+  bg_color: "#0f172a",
+  text_color: "#ffffff",
+  font_family: "Inter",
+  hero_overlay_opacity: 60,
+  hero_bg_type: "image",
+  theme: "elegant",
+};
+
+const FONT_OPTIONS = [
+  { value: "Inter", label: "Inter (modern sans)" },
+  { value: "Playfair Display", label: "Playfair (elegant serif)" },
+  { value: "Montserrat", label: "Montserrat (geometric)" },
+  { value: "Poppins", label: "Poppins (friendly)" },
+  { value: "Cormorant Garamond", label: "Cormorant (luxury serif)" },
+];
+
+const THEME_PRESETS: Record<string, { accent: string; bg: string; text: string }> = {
+  elegant: { accent: "#b8972c", bg: "#0f172a", text: "#ffffff" },
+  modern: { accent: "#3b82f6", bg: "#0a0a0a", text: "#ffffff" },
+  minimal: { accent: "#171717", bg: "#fafafa", text: "#171717" },
+  bold: { accent: "#dc2626", bg: "#1c1917", text: "#ffffff" },
+  nature: { accent: "#16a34a", bg: "#0c1410", text: "#ffffff" },
 };
 
 export default function LandingPages() {
@@ -82,6 +134,7 @@ export default function LandingPages() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [content, setContent] = useState<LandingContent>(DEFAULT_CONTENT);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchPages = async () => {
@@ -99,6 +152,7 @@ export default function LandingPages() {
     setEditing(null);
     setForm(emptyForm);
     setUploadedImages([]);
+    setContent(DEFAULT_CONTENT);
     setOpen(true);
   };
 
@@ -110,7 +164,33 @@ export default function LandingPages() {
       ai_prompt: p.ai_prompt ?? "",
     });
     setUploadedImages(p.images ?? []);
+    setContent({ ...DEFAULT_CONTENT, ...(p.generated_content ?? {}) });
     setOpen(true);
+  };
+
+  const applyTheme = (theme: string) => {
+    const preset = THEME_PRESETS[theme];
+    if (preset) {
+      setContent((c) => ({ ...c, theme, accent_color: preset.accent, bg_color: preset.bg, text_color: preset.text }));
+    } else {
+      setContent((c) => ({ ...c, theme }));
+    }
+  };
+
+  const updateFeature = (idx: number, key: "title" | "description" | "icon", value: string) => {
+    setContent((c) => {
+      const features = [...(c.features ?? [])];
+      features[idx] = { ...features[idx], [key]: value };
+      return { ...c, features };
+    });
+  };
+
+  const updateBenefit = (idx: number, value: string) => {
+    setContent((c) => {
+      const benefits = [...(c.benefits ?? [])];
+      benefits[idx] = value;
+      return { ...c, benefits };
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,9 +242,9 @@ export default function LandingPages() {
           variant: "destructive",
         });
       } else {
-        toast({ title: "Treść landing page wygenerowana!" });
-        // Store temporarily — saved on form submit
-        (window as unknown as Record<string, unknown>).__lpContent = data.content;
+        toast({ title: "Treść wygenerowana — możesz teraz dostosować kolory i teksty" });
+        // Merge AI content into current visual settings
+        setContent((c) => ({ ...c, ...(data.content as LandingContent) }));
       }
     } catch {
       toast({ title: "Błąd", description: "Nie udało się wygenerować treści", variant: "destructive" });
@@ -177,15 +257,12 @@ export default function LandingPages() {
     if (!form.title.trim()) return;
     setSaving(true);
 
-    const generatedContent =
-      (window as unknown as Record<string, unknown>).__lpContent ?? editing?.generated_content ?? null;
-
     const payload = {
       title: form.title,
       description: form.description || null,
       ai_prompt: form.ai_prompt || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      generated_content: generatedContent as any,
+      generated_content: content as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       images: uploadedImages as any,
       hero_image_url: uploadedImages[0] ?? null,
@@ -201,7 +278,6 @@ export default function LandingPages() {
       else toast({ title: "Landing page utworzony!" });
     }
 
-    (window as unknown as Record<string, unknown>).__lpContent = null;
     setSaving(false);
     setOpen(false);
     fetchPages();
@@ -487,6 +563,95 @@ export default function LandingPages() {
                   )}
                 </Button>
               </div>
+
+              {/* Visual customization panel */}
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-foreground" />
+                  <p className="text-sm font-medium text-foreground">Wygląd i kolory</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Szybki motyw</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(THEME_PRESETS).map(([key, preset]) => (
+                      <button key={key} type="button" onClick={() => applyTheme(key)}
+                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs capitalize transition ${content.theme === key ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"}`}>
+                        <span className="h-3 w-3 rounded-full" style={{ background: preset.accent }} />{key}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {([["Akcent","accent_color","#b8972c"],["Tło","bg_color","#0f172a"],["Tekst","text_color","#ffffff"]] as const).map(([label,key,def]) => (
+                    <div key={key} className="space-y-1">
+                      <Label className="text-xs">{label}</Label>
+                      <div className="flex items-center gap-1.5">
+                        <input type="color" value={(content[key] as string) || def} onChange={(e) => setContent({ ...content, [key]: e.target.value })} className="h-8 w-10 cursor-pointer rounded border border-border" />
+                        <Input value={(content[key] as string) || ""} onChange={(e) => setContent({ ...content, [key]: e.target.value })} className="h-8 text-xs font-mono" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs flex items-center gap-1"><Type className="h-3 w-3" /> Czcionka</Label>
+                    <Select value={content.font_family || "Inter"} onValueChange={(v) => setContent({ ...content, font_family: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {FONT_OPTIONS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tło hero</Label>
+                    <Select value={content.hero_bg_type || "image"} onValueChange={(v) => setContent({ ...content, hero_bg_type: v as "image"|"color"|"gradient" })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="image">Zdjęcie</SelectItem>
+                        <SelectItem value="color">Kolor jednolity</SelectItem>
+                        <SelectItem value="gradient">Gradient</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {content.hero_bg_type !== "color" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Przyciemnienie hero ({content.hero_overlay_opacity ?? 60}%)</Label>
+                    <Slider value={[content.hero_overlay_opacity ?? 60]} onValueChange={([v]) => setContent({ ...content, hero_overlay_opacity: v })} min={0} max={90} step={5} />
+                  </div>
+                )}
+              </div>
+
+              {(content.headline || (content.features && content.features.length > 0)) && (
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <p className="text-sm font-medium text-foreground">Edycja tekstów</p>
+                  <div className="space-y-1"><Label className="text-xs">Nagłówek</Label><Input value={content.headline || ""} onChange={(e) => setContent({ ...content, headline: e.target.value })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Podtytuł</Label><Input value={content.subheadline || ""} onChange={(e) => setContent({ ...content, subheadline: e.target.value })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Opis</Label><Textarea value={content.description || ""} onChange={(e) => setContent({ ...content, description: e.target.value })} rows={3} /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1"><Label className="text-xs">Tekst CTA</Label><Input value={content.cta_text || ""} onChange={(e) => setContent({ ...content, cta_text: e.target.value })} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Tytuł formularza</Label><Input value={content.contact_title || ""} onChange={(e) => setContent({ ...content, contact_title: e.target.value })} /></div>
+                  </div>
+                  {content.benefits && content.benefits.length > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Benefity</Label>
+                      {content.benefits.map((b, i) => <Input key={i} value={b} onChange={(e) => updateBenefit(i, e.target.value)} className="h-8 text-xs" />)}
+                    </div>
+                  )}
+                  {content.features && content.features.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Cechy</Label>
+                      {content.features.map((f, i) => (
+                        <div key={i} className="grid grid-cols-2 gap-1.5 rounded border border-border p-2">
+                          <Input value={f.title} onChange={(e) => updateFeature(i, "title", e.target.value)} placeholder="Tytuł" className="h-8 text-xs" />
+                          <Input value={f.icon} onChange={(e) => updateFeature(i, "icon", e.target.value)} placeholder="ikona" className="h-8 text-xs" />
+                          <Textarea value={f.description} onChange={(e) => updateFeature(i, "description", e.target.value)} rows={2} className="col-span-2 text-xs" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>

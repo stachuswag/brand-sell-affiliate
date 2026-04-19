@@ -7,85 +7,50 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Plus, Copy, Check, Link2, Pencil, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 
-interface Partner {
-  id: string;
-  name: string;
-}
-
-interface Offer {
-  id: string;
-  name: string;
-  city: string | null;
-  address: string | null;
-}
-
-interface LandingPage {
-  id: string;
-  title: string;
-}
+interface Partner { id: string; name: string; }
+interface Project { id: string; name: string; cities: string[]; }
+interface LandingPage { id: string; title: string; }
 
 interface AffiliateLink {
   id: string;
   partner_id: string;
-  link_type: "partner" | "property";
-  property_name: string | null;
-  property_address: string | null;
+  project_id: string | null;
+  landing_page_id: string | null;
   destination_url: string | null;
   tracking_code: string;
   is_active: boolean;
   expires_at: string | null;
   created_at: string;
-  offer_id: string | null;
-  landing_page_id: string | null;
   partners: { name: string } | null;
-  click_count?: number;
-  contact_count?: number;
+  projects?: { name: string } | null;
 }
 
-function generateCode(partnerName: string, property?: string): string {
-  const prefix = partnerName
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .slice(0, 7);
-  const suffix = property
-    ? property.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) + "-"
-    : "";
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${suffix}${rand}`;
+function generateCode(partnerName: string, projectName?: string): string {
+  const slug = (s: string) => s.toLowerCase()
+    .replace(/[ąćęłńóśźż]/g, (c) => ({ ą:"a",ć:"c",ę:"e",ł:"l",ń:"n",ó:"o",ś:"s",ź:"z",ż:"z" }[c] || c))
+    .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 14);
+  const prefix = slug(partnerName) || "partner";
+  const mid = projectName ? "-" + slug(projectName).slice(0, 10) : "";
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `${prefix}${mid}-${rand}`;
 }
 
 const emptyForm = {
   partner_id: "",
-  link_type: "partner" as "partner" | "property",
-  offer_id: "",
-  property_name: "",
-  property_address: "",
+  project_id: "",
   destination_url: "",
   expires_at: "",
   landing_page_id: "",
@@ -96,7 +61,7 @@ export default function Links() {
   const { toast } = useToast();
   const [links, setLinks] = useState<AffiliateLink[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -107,73 +72,33 @@ export default function Links() {
   const [filterPartner, setFilterPartner] = useState("all");
   const isAdmin = role === "admin";
 
-  const fetchLinks = async () => {
-    const { data } = await supabase
-      .from("affiliate_links")
-      .select(`*, partners(name)`)
-      .order("created_at", { ascending: false });
-    if (data) setLinks(data as AffiliateLink[]);
+  const fetchAll = async () => {
+    const [linksRes, partnersRes, projectsRes, lpRes] = await Promise.all([
+      supabase.from("affiliate_links").select(`*, partners(name), projects(name)`).order("created_at", { ascending: false }),
+      supabase.from("partners").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("projects").select("id, name, cities").eq("is_active", true).order("name"),
+      supabase.from("landing_pages").select("id, title").eq("is_published", true).order("title"),
+    ]);
+    if (linksRes.data) setLinks(linksRes.data as AffiliateLink[]);
+    if (partnersRes.data) setPartners(partnersRes.data);
+    if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+    if (lpRes.data) setLandingPages(lpRes.data as LandingPage[]);
     setLoading(false);
   };
 
-  const fetchPartners = async () => {
-    const { data } = await supabase.from("partners").select("id, name").eq("is_active", true).order("name");
-    if (data) setPartners(data);
-  };
+  useEffect(() => { fetchAll(); }, []);
 
-  const fetchOffers = async () => {
-    const { data } = await supabase.from("offers").select("id, name, city, address").eq("is_active", true).order("name");
-    if (data) setOffers(data as Offer[]);
-  };
-
-  const fetchLandingPages = async () => {
-    const { data } = await supabase.from("landing_pages").select("id, title").eq("is_published", true).order("title");
-    if (data) setLandingPages(data as LandingPage[]);
-  };
-
-  useEffect(() => {
-    fetchLinks();
-    fetchPartners();
-    fetchOffers();
-    fetchLandingPages();
-  }, []);
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm);
-    setOpen(true);
-  };
-
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (l: AffiliateLink) => {
     setEditing(l);
     setForm({
       partner_id: l.partner_id,
-      link_type: l.link_type,
-      offer_id: l.offer_id ?? "",
-      property_name: l.property_name ?? "",
-      property_address: l.property_address ?? "",
+      project_id: l.project_id ?? "",
       destination_url: l.destination_url ?? "",
       expires_at: l.expires_at ? l.expires_at.split("T")[0] : "",
       landing_page_id: l.landing_page_id ?? "",
     });
     setOpen(true);
-  };
-
-  // When an offer is selected, auto-fill property fields
-  const handleOfferSelect = (offerId: string) => {
-    if (offerId === "manual") {
-      setForm({ ...form, offer_id: "", property_name: "", property_address: "" });
-      return;
-    }
-    const offer = offers.find((o) => o.id === offerId);
-    if (offer) {
-      setForm({
-        ...form,
-        offer_id: offerId,
-        property_name: offer.name,
-        property_address: [offer.address, offer.city].filter(Boolean).join(", "),
-      });
-    }
   };
 
   const buildTrackingUrl = (code: string) => `${window.location.origin}/c/${code}`;
@@ -189,16 +114,17 @@ export default function Links() {
     e.preventDefault();
     if (!form.partner_id) return;
     setSaving(true);
-
-    const selectedPartner = partners.find((p) => p.id === form.partner_id);
-    const code = editing?.tracking_code ?? generateCode(selectedPartner?.name ?? "LINK", form.property_name);
+    const partner = partners.find((p) => p.id === form.partner_id);
+    const project = projects.find((p) => p.id === form.project_id);
+    const code = editing?.tracking_code ?? generateCode(partner?.name ?? "LINK", project?.name);
 
     const payload = {
       partner_id: form.partner_id,
-      link_type: form.link_type,
-      offer_id: form.offer_id || null,
-      property_name: form.property_name || null,
-      property_address: form.property_address || null,
+      project_id: form.project_id || null,
+      offer_id: null,
+      property_name: project?.name || null,
+      property_address: project?.cities?.join(", ") || null,
+      link_type: "partner" as const,
       destination_url: form.destination_url || null,
       expires_at: form.expires_at || null,
       landing_page_id: form.landing_page_id || null,
@@ -213,15 +139,12 @@ export default function Links() {
       if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
       else toast({ title: "Link utworzony" });
     }
-
-    setSaving(false);
-    setOpen(false);
-    fetchLinks();
+    setSaving(false); setOpen(false); fetchAll();
   };
 
   const toggleActive = async (l: AffiliateLink) => {
     await supabase.from("affiliate_links").update({ is_active: !l.is_active }).eq("id", l.id);
-    fetchLinks();
+    fetchAll();
   };
 
   const filtered = filterPartner === "all" ? links : links.filter((l) => l.partner_id === filterPartner);
@@ -232,7 +155,7 @@ export default function Links() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Linki afiliacyjne</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Twórz i zarządzaj linkami śledzącymi</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Linki są przypisane do partnera i opcjonalnie do projektu</p>
           </div>
           {isAdmin && (
             <Button onClick={openCreate} className="gap-2">
@@ -241,17 +164,12 @@ export default function Links() {
           )}
         </div>
 
-        {/* Filter */}
         <div className="flex items-center gap-3">
           <Select value={filterPartner} onValueChange={setFilterPartner}>
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="Wszyscy partnerzy" />
-            </SelectTrigger>
+            <SelectTrigger className="w-52"><SelectValue placeholder="Wszyscy partnerzy" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Wszyscy partnerzy</SelectItem>
-              {partners.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
+              {partners.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <span className="text-sm text-muted-foreground">{filtered.length} linków</span>
@@ -265,7 +183,6 @@ export default function Links() {
               <div className="p-12 text-center">
                 <Link2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm font-medium text-foreground">Brak linków</p>
-                <p className="text-xs text-muted-foreground mt-1">Utwórz pierwszy link afiliacyjny</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -273,11 +190,10 @@ export default function Links() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Partner</TableHead>
-                      <TableHead>Typ</TableHead>
-                      <TableHead>Nieruchomość</TableHead>
+                      <TableHead>Projekt</TableHead>
                       <TableHead>Kod śledzący</TableHead>
                       <TableHead className="text-center">Status</TableHead>
-                      <TableHead>Data ważności</TableHead>
+                      <TableHead>Ważność</TableHead>
                       <TableHead className="text-right">Akcje</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -285,18 +201,11 @@ export default function Links() {
                     {filtered.map((l) => (
                       <TableRow key={l.id}>
                         <TableCell className="font-medium">{l.partners?.name ?? "—"}</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${l.link_type === "property" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-purple-50 text-purple-700 border-purple-200"}`}>
-                            {l.link_type === "property" ? "Oferta" : "Ogólny"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {l.property_name ?? "—"}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {l.projects?.name ?? <span className="text-xs italic">Ogólny</span>}
                         </TableCell>
                         <TableCell>
-                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                            {l.tracking_code}
-                          </code>
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">{l.tracking_code}</code>
                         </TableCell>
                         <TableCell className="text-center">
                           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${l.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
@@ -308,10 +217,10 @@ export default function Links() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => handleCopy(l.tracking_code)} className="h-8 w-8 p-0" title="Kopiuj link">
+                            <Button variant="ghost" size="sm" onClick={() => handleCopy(l.tracking_code)} className="h-8 w-8 p-0" title="Kopiuj">
                               {copied === l.tracking_code ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => window.open(buildTrackingUrl(l.tracking_code), "_blank")} className="h-8 w-8 p-0" title="Otwórz link">
+                            <Button variant="ghost" size="sm" onClick={() => window.open(buildTrackingUrl(l.tracking_code), "_blank")} className="h-8 w-8 p-0" title="Otwórz">
                               <ExternalLink className="h-3.5 w-3.5" />
                             </Button>
                             {isAdmin && (
@@ -344,101 +253,52 @@ export default function Links() {
               <div className="space-y-2">
                 <Label>Partner *</Label>
                 <Select value={form.partner_id} onValueChange={(v) => setForm({ ...form, partner_id: v })} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Wybierz partnera" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Wybierz partnera" /></SelectTrigger>
                   <SelectContent>
-                    {partners.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Typ linku</Label>
-                <Select value={form.link_type} onValueChange={(v) => setForm({ ...form, link_type: v as "partner" | "property", offer_id: "", property_name: "", property_address: "" })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="partner">Ogólny (dla firmy partnerskiej)</SelectItem>
-                    <SelectItem value="property">Per oferta/nieruchomość</SelectItem>
+                    {partners.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
-              {form.link_type === "property" && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Wybierz ofertę z bazy</Label>
-                    <Select value={form.offer_id || "manual"} onValueChange={handleOfferSelect}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Wybierz ofertę lub wpisz ręcznie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="manual">— Wpisz ręcznie —</SelectItem>
-                        {offers.map((o) => (
-                          <SelectItem key={o.id} value={o.id}>
-                            {o.name}{o.city ? ` • ${o.city}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Nazwa nieruchomości</Label>
-                      <Input value={form.property_name} onChange={(e) => setForm({ ...form, property_name: e.target.value, offer_id: "" })} placeholder="np. Apartament Centrum" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Adres</Label>
-                      <Input value={form.property_address} onChange={(e) => setForm({ ...form, property_address: e.target.value, offer_id: "" })} placeholder="ul. Marszałkowska 1" />
-                    </div>
-                  </div>
+              <div className="space-y-2">
+                <Label>Projekt inwestycyjny (opcjonalnie)</Label>
+                <Select value={form.project_id || "none"} onValueChange={(v) => setForm({ ...form, project_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Bez projektu (link ogólny)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Bez projektu —</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}{p.cities?.length ? ` • ${p.cities.join(", ")}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Landing Page (opcjonalnie)</Label>
+                <Select value={form.landing_page_id || "none"} onValueChange={(v) => setForm({ ...form, landing_page_id: v === "none" ? "" : v, destination_url: v !== "none" ? "" : form.destination_url })}>
+                  <SelectTrigger><SelectValue placeholder="Bez landing page" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Bez landing page —</SelectItem>
+                    {landingPages.map((lp) => <SelectItem key={lp.id} value={lp.id}>{lp.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {!form.landing_page_id && (
+                <div className="space-y-2">
+                  <Label>Własny URL przekierowania (opcjonalnie)</Label>
+                  <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://..." />
+                  <p className="text-xs text-muted-foreground">Pusty = wbudowany formularz kontaktowy</p>
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label>Landing Page (opcjonalnie)</Label>
-                <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2 mb-2">
-                  <span className="h-2 w-2 rounded-full bg-accent flex-shrink-0 mt-1.5" />
-                  <div className="text-xs text-foreground">
-                    <span className="font-medium">Wybierz landing page</span>
-                    <span className="text-muted-foreground"> — klient zobaczy dedykowaną stronę z galerią i formularzem</span>
-                  </div>
-                </div>
-                <Select value={form.landing_page_id || "none"} onValueChange={(v) => setForm({ ...form, landing_page_id: v === "none" ? "" : v, destination_url: v !== "none" ? "" : form.destination_url })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Bez landing page" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— Bez landing page —</SelectItem>
-                    {landingPages.map((lp) => (
-                      <SelectItem key={lp.id} value={lp.id}>{lp.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Przekierowanie po kliknięciu linku</Label>
-                <div className="rounded-lg border bg-muted/50 px-3 py-2.5 flex items-start gap-2">
-                  <span className="h-2 w-2 rounded-full bg-success flex-shrink-0 mt-1.5" />
-                  <div className="text-xs text-foreground">
-                    <span className="font-medium">Wbudowany formularz kontaktowy</span>
-                    <span className="text-muted-foreground"> — klient wypełnia formularz, Ty dostajesz powiadomienie</span>
-                  </div>
-                </div>
-                {!form.landing_page_id && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Lub wpisz własny URL (opcjonalnie):</p>
-                    <Input value={form.destination_url} onChange={(e) => setForm({ ...form, destination_url: e.target.value })} placeholder="https://brandsell.pl/kontakt (opcjonalnie)" />
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
                 <Label>Data ważności (opcjonalnie)</Label>
                 <Input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
               </div>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Anuluj</Button>
                 <Button type="submit" disabled={saving || !form.partner_id}>{saving ? "Zapisywanie..." : "Zapisz"}</Button>

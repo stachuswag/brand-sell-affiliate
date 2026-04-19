@@ -69,8 +69,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Partner nie znaleziony" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!partner.email) {
-      return new Response(JSON.stringify({ error: "Partner nie ma emaila" }),
+    const recipientEmail = partner.email || partner.login_email;
+    if (!recipientEmail) {
+      return new Response(JSON.stringify({ error: "Partner nie ma emaila ani loginu — uzupełnij email partnera w bazie" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -350,24 +351,28 @@ ${signature}
     const emailSubject = subjectMap[email_type] || "Wiadomość od Brand and Sell";
 
     // Send to Make.com
-    const webhookPayload = { email: partner.email, email_body: emailBody, email_subject: emailSubject };
-    console.log("Sending webhook:", JSON.stringify({ email: partner.email, type: email_type, subject: emailSubject }));
+    const webhookPayload = { email: recipientEmail, email_body: emailBody, email_subject: emailSubject };
+    console.log("Sending webhook:", JSON.stringify({ email: recipientEmail, type: email_type, subject: emailSubject }));
 
-    let webhookResult = null;
     try {
       const resp = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(webhookPayload),
       });
-      webhookResult = { status: resp.status, ok: resp.ok };
-      console.log("Webhook sent:", webhookResult);
+      const respText = await resp.text().catch(() => "");
+      console.log("Webhook response:", resp.status, respText.slice(0, 300));
+      if (!resp.ok) {
+        return new Response(JSON.stringify({ error: `Make.com zwrócił błąd ${resp.status}: ${respText.slice(0, 200)}` }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     } catch (e) {
       console.error("Webhook error:", e);
-      webhookResult = { error: String(e) };
+      return new Response(JSON.stringify({ error: "Brak połączenia z Make.com: " + String(e) }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ success: true, email: partner.email, email_type, webhook_result: webhookResult }),
+    return new Response(JSON.stringify({ success: true, email: recipientEmail, email_type }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Error:", error);
