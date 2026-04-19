@@ -173,10 +173,32 @@ export default function Partners() {
       } catch {
         toast({ title: "Partner dodany, ale błąd tworzenia konta", variant: "destructive" });
       }
+
+      // Auto-create general affiliate link for this partner
+      try {
+        const slug = form.name.toLowerCase()
+          .replace(/[ąćęłńóśźż]/g, (ch) => ({ ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z" }[ch] || ch))
+          .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 20) || "partner";
+        const random = Math.random().toString(36).slice(2, 6);
+        const trackingCode = `${slug}-${random}`;
+        const { error: linkError } = await supabase.from("affiliate_links").insert({
+          partner_id: partnerId,
+          tracking_code: trackingCode,
+          link_type: "partner",
+          is_active: true,
+        });
+        if (linkError) {
+          toast({ title: "Uwaga", description: "Nie udało się utworzyć linka afiliacyjnego: " + linkError.message, variant: "destructive" });
+        }
+      } catch {
+        // Silent fail - non-critical
+      }
     }
     if (partnerId) {
       await supabase.from("partner_offers").delete().eq("partner_id", partnerId);
       if (selectedOfferIds.length > 0) await supabase.from("partner_offers").insert(selectedOfferIds.map((oid) => ({ partner_id: partnerId!, offer_id: oid })));
+      await supabase.from("partner_projects").delete().eq("partner_id", partnerId);
+      if (selectedProjectIds.length > 0) await supabase.from("partner_projects").insert(selectedProjectIds.map((pid) => ({ partner_id: partnerId!, project_id: pid })));
     }
     setSaving(false); setOpen(false); fetchPartners();
   };
