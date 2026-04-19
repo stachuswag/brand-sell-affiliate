@@ -33,6 +33,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import {
   Plus,
   Pencil,
   Trash2,
@@ -43,6 +47,8 @@ import {
   X,
   Eye,
   Loader2,
+  Palette,
+  Type,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
