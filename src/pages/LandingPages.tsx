@@ -48,13 +48,33 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 
+interface LandingContent {
+  headline?: string;
+  subheadline?: string;
+  description?: string;
+  features?: { icon: string; title: string; description: string }[];
+  cta_text?: string;
+  cta_description?: string;
+  contact_title?: string;
+  contact_description?: string;
+  footer_text?: string;
+  benefits?: string[];
+  accent_color?: string;
+  bg_color?: string;
+  text_color?: string;
+  font_family?: string;
+  hero_overlay_opacity?: number;
+  hero_bg_type?: "image" | "color" | "gradient";
+  theme?: string;
+}
+
 interface LandingPage {
   id: string;
   title: string;
   slug: string | null;
   description: string | null;
   ai_prompt: string | null;
-  generated_content: Record<string, unknown> | null;
+  generated_content: LandingContent | null;
   hero_image_url: string | null;
   images: string[];
   is_published: boolean;
@@ -65,6 +85,32 @@ const emptyForm = {
   title: "",
   description: "",
   ai_prompt: "",
+};
+
+const DEFAULT_CONTENT: LandingContent = {
+  accent_color: "#b8972c",
+  bg_color: "#0f172a",
+  text_color: "#ffffff",
+  font_family: "Inter",
+  hero_overlay_opacity: 60,
+  hero_bg_type: "image",
+  theme: "elegant",
+};
+
+const FONT_OPTIONS = [
+  { value: "Inter", label: "Inter (modern sans)" },
+  { value: "Playfair Display", label: "Playfair (elegant serif)" },
+  { value: "Montserrat", label: "Montserrat (geometric)" },
+  { value: "Poppins", label: "Poppins (friendly)" },
+  { value: "Cormorant Garamond", label: "Cormorant (luxury serif)" },
+];
+
+const THEME_PRESETS: Record<string, { accent: string; bg: string; text: string }> = {
+  elegant: { accent: "#b8972c", bg: "#0f172a", text: "#ffffff" },
+  modern: { accent: "#3b82f6", bg: "#0a0a0a", text: "#ffffff" },
+  minimal: { accent: "#171717", bg: "#fafafa", text: "#171717" },
+  bold: { accent: "#dc2626", bg: "#1c1917", text: "#ffffff" },
+  nature: { accent: "#16a34a", bg: "#0c1410", text: "#ffffff" },
 };
 
 export default function LandingPages() {
