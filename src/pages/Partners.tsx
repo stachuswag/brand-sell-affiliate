@@ -74,6 +74,7 @@ export default function Partners() {
   const [deletePartner, setDeletePartner] = useState<Partner | null>(null);
   const [allOffers, setAllOffers] = useState<Offer[]>([]);
   const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   // Clay + Onboard
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
@@ -119,16 +120,22 @@ export default function Partners() {
     setSelectedOfferIds(data?.map((r) => r.offer_id) ?? []);
   };
 
+  const fetchPartnerProjects = async (partnerId: string) => {
+    const { data } = await supabase.from("partner_projects").select("project_id").eq("partner_id", partnerId);
+    setSelectedProjectIds(data?.map((r) => r.project_id) ?? []);
+  };
+
   useEffect(() => { fetchPartners(); fetchOffers(); fetchProjects(); }, []);
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setSelectedProjectIds([]); setOpen(true); };
   const openEdit = async (p: Partner) => {
     setEditing(p);
     setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "", login_email: p.login_email ?? "" });
-    await fetchPartnerOffers(p.id);
+    await Promise.all([fetchPartnerOffers(p.id), fetchPartnerProjects(p.id)]);
     setOpen(true);
   };
   const toggleOffer = (offerId: string) => setSelectedOfferIds((prev) => prev.includes(offerId) ? prev.filter((id) => id !== offerId) : [...prev, offerId]);
+  const toggleProject = (projectId: string) => setSelectedProjectIds((prev) => prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,10 +173,32 @@ export default function Partners() {
       } catch {
         toast({ title: "Partner dodany, ale błąd tworzenia konta", variant: "destructive" });
       }
+
+      // Auto-create general affiliate link for this partner
+      try {
+        const slug = form.name.toLowerCase()
+          .replace(/[ąćęłńóśźż]/g, (ch) => ({ ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z" }[ch] || ch))
+          .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 20) || "partner";
+        const random = Math.random().toString(36).slice(2, 6);
+        const trackingCode = `${slug}-${random}`;
+        const { error: linkError } = await supabase.from("affiliate_links").insert({
+          partner_id: partnerId,
+          tracking_code: trackingCode,
+          link_type: "partner",
+          is_active: true,
+        });
+        if (linkError) {
+          toast({ title: "Uwaga", description: "Nie udało się utworzyć linka afiliacyjnego: " + linkError.message, variant: "destructive" });
+        }
+      } catch {
+        // Silent fail - non-critical
+      }
     }
     if (partnerId) {
       await supabase.from("partner_offers").delete().eq("partner_id", partnerId);
       if (selectedOfferIds.length > 0) await supabase.from("partner_offers").insert(selectedOfferIds.map((oid) => ({ partner_id: partnerId!, offer_id: oid })));
+      await supabase.from("partner_projects").delete().eq("partner_id", partnerId);
+      if (selectedProjectIds.length > 0) await supabase.from("partner_projects").insert(selectedProjectIds.map((pid) => ({ partner_id: partnerId!, project_id: pid })));
     }
     setSaving(false); setOpen(false); fetchPartners();
   };
@@ -491,6 +520,20 @@ export default function Partners() {
                       <label key={o.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
                         <Checkbox checked={selectedOfferIds.includes(o.id)} onCheckedChange={() => toggleOffer(o.id)} />
                         <span>{o.name}</span>{o.city && <span className="text-xs text-muted-foreground">• {o.city}</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {projects.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Przypisane projekty inwestycyjne ({selectedProjectIds.length})</Label>
+                  <div className="max-h-40 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                    {projects.map((pr) => (
+                      <label key={pr.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
+                        <Checkbox checked={selectedProjectIds.includes(pr.id)} onCheckedChange={() => toggleProject(pr.id)} />
+                        <span>{pr.name}</span>
+                        {pr.cities.length > 0 && <span className="text-xs text-muted-foreground">• {pr.cities.join(", ")}</span>}
                       </label>
                     ))}
                   </div>

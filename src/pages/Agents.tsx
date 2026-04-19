@@ -232,9 +232,9 @@ export default function Agents() {
     <AppShell>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Konta agentów</h1>
+          <h1 className="text-2xl font-bold text-foreground">Konta partnerów</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Zarządzaj dostępem partnerów do ich panelu agenta
+            Zarządzaj dostępem partnerów do ich panelu
           </p>
         </div>
 
