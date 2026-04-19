@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -18,7 +19,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, MapPin, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin, FolderOpen, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Project {
@@ -29,7 +30,10 @@ interface Project {
   is_active: boolean;
   materials_folder_url: string | null;
   created_at: string;
+  partner_count?: number;
 }
+
+interface Partner { id: string; name: string; }
 
 const emptyForm = {
   name: "",
@@ -45,31 +49,40 @@ export default function Projects() {
   const isAdmin = role === "admin";
 
   const [projects, setProjects] = useState<Project[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [selectedPartnerIds, setSelectedPartnerIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const fetchProjects = async () => {
-    const { data } = await supabase
-      .from("projects")
-      .select("*")
-      .order("name");
-    if (data) setProjects(data as Project[]);
+  const fetchAll = async () => {
+    const [{ data: projectsData }, { data: partnersData }, { data: pp }] = await Promise.all([
+      supabase.from("projects").select("*").order("name"),
+      supabase.from("partners").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("partner_projects").select("project_id"),
+    ]);
+    if (partnersData) setPartners(partnersData as Partner[]);
+    if (projectsData) {
+      const counts: Record<string, number> = {};
+      pp?.forEach((row) => { counts[row.project_id] = (counts[row.project_id] ?? 0) + 1; });
+      setProjects((projectsData as Project[]).map((p) => ({ ...p, partner_count: counts[p.id] ?? 0 })));
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchProjects(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setSelectedPartnerIds([]);
     setDialogOpen(true);
   };
 
-  const openEdit = (p: Project) => {
+  const openEdit = async (p: Project) => {
     setEditingId(p.id);
     setForm({
       name: p.name,
@@ -78,7 +91,18 @@ export default function Projects() {
       materials_folder_url: p.materials_folder_url || "",
       is_active: p.is_active,
     });
+    const { data } = await supabase
+      .from("partner_projects")
+      .select("partner_id")
+      .eq("project_id", p.id);
+    setSelectedPartnerIds(data?.map((r) => r.partner_id) ?? []);
     setDialogOpen(true);
+  };
+
+  const togglePartner = (id: string) => {
+    setSelectedPartnerIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -93,33 +117,45 @@ export default function Projects() {
       is_active: form.is_active,
     };
 
+    let projectId = editingId;
     if (editingId) {
       const { error } = await supabase.from("projects").update(payload).eq("id", editingId);
-      if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
-      else toast({ title: "Projekt zaktualizowany" });
+      if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
+      toast({ title: "Projekt zaktualizowany" });
     } else {
-      const { error } = await supabase.from("projects").insert(payload);
-      if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
-      else toast({ title: "Projekt dodany" });
+      const { data, error } = await supabase.from("projects").insert(payload).select("id").single();
+      if (error) { toast({ title: "Błąd", description: error.message, variant: "destructive" }); setSaving(false); return; }
+      projectId = data.id;
+      toast({ title: "Projekt dodany" });
+    }
+
+    if (projectId) {
+      await supabase.from("partner_projects").delete().eq("project_id", projectId);
+      if (selectedPartnerIds.length > 0) {
+        await supabase.from("partner_projects").insert(
+          selectedPartnerIds.map((pid) => ({ project_id: projectId!, partner_id: pid }))
+        );
+      }
     }
 
     setDialogOpen(false);
     setSaving(false);
-    fetchProjects();
+    fetchAll();
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    await supabase.from("partner_projects").delete().eq("project_id", deleteId);
     const { error } = await supabase.from("projects").delete().eq("id", deleteId);
     if (error) toast({ title: "Błąd", description: error.message, variant: "destructive" });
     else toast({ title: "Projekt usunięty" });
     setDeleteId(null);
-    fetchProjects();
+    fetchAll();
   };
 
   const toggleActive = async (p: Project) => {
     await supabase.from("projects").update({ is_active: !p.is_active }).eq("id", p.id);
-    fetchProjects();
+    fetchAll();
   };
 
   return (
@@ -129,7 +165,7 @@ export default function Projects() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Projekty inwestycyjne</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Zarządzaj inwestycjami i przypisanymi miastami
+              Zarządzaj inwestycjami, miastami i przypisanymi partnerami
             </p>
           </div>
           {isAdmin && (
@@ -154,6 +190,7 @@ export default function Projects() {
                     <TableRow>
                       <TableHead>Nazwa</TableHead>
                       <TableHead>Miasta</TableHead>
+                      <TableHead className="text-center">Partnerzy</TableHead>
                       <TableHead>Opis</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
@@ -171,6 +208,11 @@ export default function Projects() {
                               </Badge>
                             ))}
                           </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="gap-1">
+                            <Users className="h-3 w-3" /> {p.partner_count ?? 0}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                           {p.description || "—"}
@@ -221,7 +263,7 @@ export default function Projects() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingId ? "Edytuj projekt" : "Nowy projekt"}</DialogTitle>
             </DialogHeader>
@@ -261,6 +303,27 @@ export default function Projects() {
                   placeholder="https://drive.google.com/drive/folders/..."
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label>Przypisani partnerzy ({selectedPartnerIds.length})</Label>
+                <div className="border border-border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
+                  {partners.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-2">Brak aktywnych partnerów</p>
+                  ) : partners.map((p) => (
+                    <label
+                      key={p.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={selectedPartnerIds.includes(p.id)}
+                        onCheckedChange={() => togglePartner(p.id)}
+                      />
+                      <span>{p.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Anuluj</Button>
                 <Button type="submit" disabled={saving}>
