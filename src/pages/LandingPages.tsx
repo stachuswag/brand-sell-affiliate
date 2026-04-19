@@ -128,6 +128,7 @@ export default function LandingPages() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [content, setContent] = useState<LandingContent>(DEFAULT_CONTENT);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchPages = async () => {
@@ -145,6 +146,7 @@ export default function LandingPages() {
     setEditing(null);
     setForm(emptyForm);
     setUploadedImages([]);
+    setContent(DEFAULT_CONTENT);
     setOpen(true);
   };
 
@@ -156,7 +158,33 @@ export default function LandingPages() {
       ai_prompt: p.ai_prompt ?? "",
     });
     setUploadedImages(p.images ?? []);
+    setContent({ ...DEFAULT_CONTENT, ...(p.generated_content ?? {}) });
     setOpen(true);
+  };
+
+  const applyTheme = (theme: string) => {
+    const preset = THEME_PRESETS[theme];
+    if (preset) {
+      setContent((c) => ({ ...c, theme, accent_color: preset.accent, bg_color: preset.bg, text_color: preset.text }));
+    } else {
+      setContent((c) => ({ ...c, theme }));
+    }
+  };
+
+  const updateFeature = (idx: number, key: "title" | "description" | "icon", value: string) => {
+    setContent((c) => {
+      const features = [...(c.features ?? [])];
+      features[idx] = { ...features[idx], [key]: value };
+      return { ...c, features };
+    });
+  };
+
+  const updateBenefit = (idx: number, value: string) => {
+    setContent((c) => {
+      const benefits = [...(c.benefits ?? [])];
+      benefits[idx] = value;
+      return { ...c, benefits };
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
