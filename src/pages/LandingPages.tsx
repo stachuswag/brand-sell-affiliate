@@ -564,6 +564,95 @@ export default function LandingPages() {
                 </Button>
               </div>
 
+              {/* Visual customization panel */}
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-foreground" />
+                  <p className="text-sm font-medium text-foreground">Wygląd i kolory</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Szybki motyw</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(THEME_PRESETS).map(([key, preset]) => (
+                      <button key={key} type="button" onClick={() => applyTheme(key)}
+                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs capitalize transition ${content.theme === key ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"}`}>
+                        <span className="h-3 w-3 rounded-full" style={{ background: preset.accent }} />{key}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {([["Akcent","accent_color","#b8972c"],["Tło","bg_color","#0f172a"],["Tekst","text_color","#ffffff"]] as const).map(([label,key,def]) => (
+                    <div key={key} className="space-y-1">
+                      <Label className="text-xs">{label}</Label>
+                      <div className="flex items-center gap-1.5">
+                        <input type="color" value={(content[key] as string) || def} onChange={(e) => setContent({ ...content, [key]: e.target.value })} className="h-8 w-10 cursor-pointer rounded border border-border" />
+                        <Input value={(content[key] as string) || ""} onChange={(e) => setContent({ ...content, [key]: e.target.value })} className="h-8 text-xs font-mono" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs flex items-center gap-1"><Type className="h-3 w-3" /> Czcionka</Label>
+                    <Select value={content.font_family || "Inter"} onValueChange={(v) => setContent({ ...content, font_family: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {FONT_OPTIONS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tło hero</Label>
+                    <Select value={content.hero_bg_type || "image"} onValueChange={(v) => setContent({ ...content, hero_bg_type: v as "image"|"color"|"gradient" })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="image">Zdjęcie</SelectItem>
+                        <SelectItem value="color">Kolor jednolity</SelectItem>
+                        <SelectItem value="gradient">Gradient</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {content.hero_bg_type !== "color" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Przyciemnienie hero ({content.hero_overlay_opacity ?? 60}%)</Label>
+                    <Slider value={[content.hero_overlay_opacity ?? 60]} onValueChange={([v]) => setContent({ ...content, hero_overlay_opacity: v })} min={0} max={90} step={5} />
+                  </div>
+                )}
+              </div>
+
+              {(content.headline || (content.features && content.features.length > 0)) && (
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <p className="text-sm font-medium text-foreground">Edycja tekstów</p>
+                  <div className="space-y-1"><Label className="text-xs">Nagłówek</Label><Input value={content.headline || ""} onChange={(e) => setContent({ ...content, headline: e.target.value })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Podtytuł</Label><Input value={content.subheadline || ""} onChange={(e) => setContent({ ...content, subheadline: e.target.value })} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Opis</Label><Textarea value={content.description || ""} onChange={(e) => setContent({ ...content, description: e.target.value })} rows={3} /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1"><Label className="text-xs">Tekst CTA</Label><Input value={content.cta_text || ""} onChange={(e) => setContent({ ...content, cta_text: e.target.value })} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Tytuł formularza</Label><Input value={content.contact_title || ""} onChange={(e) => setContent({ ...content, contact_title: e.target.value })} /></div>
+                  </div>
+                  {content.benefits && content.benefits.length > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Benefity</Label>
+                      {content.benefits.map((b, i) => <Input key={i} value={b} onChange={(e) => updateBenefit(i, e.target.value)} className="h-8 text-xs" />)}
+                    </div>
+                  )}
+                  {content.features && content.features.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Cechy</Label>
+                      {content.features.map((f, i) => (
+                        <div key={i} className="grid grid-cols-2 gap-1.5 rounded border border-border p-2">
+                          <Input value={f.title} onChange={(e) => updateFeature(i, "title", e.target.value)} placeholder="Tytuł" className="h-8 text-xs" />
+                          <Input value={f.icon} onChange={(e) => updateFeature(i, "icon", e.target.value)} placeholder="ikona" className="h-8 text-xs" />
+                          <Textarea value={f.description} onChange={(e) => updateFeature(i, "description", e.target.value)} rows={2} className="col-span-2 text-xs" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Anuluj
