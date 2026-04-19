@@ -74,6 +74,7 @@ export default function Partners() {
   const [deletePartner, setDeletePartner] = useState<Partner | null>(null);
   const [allOffers, setAllOffers] = useState<Offer[]>([]);
   const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   // Clay + Onboard
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
@@ -119,16 +120,22 @@ export default function Partners() {
     setSelectedOfferIds(data?.map((r) => r.offer_id) ?? []);
   };
 
+  const fetchPartnerProjects = async (partnerId: string) => {
+    const { data } = await supabase.from("partner_projects").select("project_id").eq("partner_id", partnerId);
+    setSelectedProjectIds(data?.map((r) => r.project_id) ?? []);
+  };
+
   useEffect(() => { fetchPartners(); fetchOffers(); fetchProjects(); }, []);
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setSelectedProjectIds([]); setOpen(true); };
   const openEdit = async (p: Partner) => {
     setEditing(p);
     setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "", login_email: p.login_email ?? "" });
-    await fetchPartnerOffers(p.id);
+    await Promise.all([fetchPartnerOffers(p.id), fetchPartnerProjects(p.id)]);
     setOpen(true);
   };
   const toggleOffer = (offerId: string) => setSelectedOfferIds((prev) => prev.includes(offerId) ? prev.filter((id) => id !== offerId) : [...prev, offerId]);
+  const toggleProject = (projectId: string) => setSelectedProjectIds((prev) => prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
