@@ -242,9 +242,9 @@ export default function LandingPages() {
           variant: "destructive",
         });
       } else {
-        toast({ title: "Treść landing page wygenerowana!" });
-        // Store temporarily — saved on form submit
-        (window as unknown as Record<string, unknown>).__lpContent = data.content;
+        toast({ title: "Treść wygenerowana — możesz teraz dostosować kolory i teksty" });
+        // Merge AI content into current visual settings
+        setContent((c) => ({ ...c, ...(data.content as LandingContent) }));
       }
     } catch {
       toast({ title: "Błąd", description: "Nie udało się wygenerować treści", variant: "destructive" });
@@ -257,15 +257,12 @@ export default function LandingPages() {
     if (!form.title.trim()) return;
     setSaving(true);
 
-    const generatedContent =
-      (window as unknown as Record<string, unknown>).__lpContent ?? editing?.generated_content ?? null;
-
     const payload = {
       title: form.title,
       description: form.description || null,
       ai_prompt: form.ai_prompt || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      generated_content: generatedContent as any,
+      generated_content: content as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       images: uploadedImages as any,
       hero_image_url: uploadedImages[0] ?? null,
@@ -281,7 +278,6 @@ export default function LandingPages() {
       else toast({ title: "Landing page utworzony!" });
     }
 
-    (window as unknown as Record<string, unknown>).__lpContent = null;
     setSaving(false);
     setOpen(false);
     fetchPages();
