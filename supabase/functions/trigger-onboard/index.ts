@@ -69,8 +69,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Partner nie znaleziony" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!partner.email) {
-      return new Response(JSON.stringify({ error: "Partner nie ma emaila" }),
+    const recipientEmail = partner.email || partner.login_email;
+    if (!recipientEmail) {
+      return new Response(JSON.stringify({ error: "Partner nie ma emaila ani loginu — uzupełnij email partnera w bazie" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
