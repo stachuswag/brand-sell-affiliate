@@ -525,6 +525,20 @@ export default function Partners() {
                   </div>
                 </div>
               )}
+              {projects.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Przypisane projekty inwestycyjne ({selectedProjectIds.length})</Label>
+                  <div className="max-h-40 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                    {projects.map((pr) => (
+                      <label key={pr.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
+                        <Checkbox checked={selectedProjectIds.includes(pr.id)} onCheckedChange={() => toggleProject(pr.id)} />
+                        <span>{pr.name}</span>
+                        {pr.cities.length > 0 && <span className="text-xs text-muted-foreground">• {pr.cities.join(", ")}</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Anuluj</Button>
                 <Button type="submit" disabled={saving}>{saving ? "Zapisywanie..." : "Zapisz"}</Button>
