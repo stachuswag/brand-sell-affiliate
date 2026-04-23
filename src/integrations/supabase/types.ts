@@ -24,7 +24,6 @@ export type Database = {
           is_active: boolean
           landing_page_id: string | null
           link_type: Database["public"]["Enums"]["link_type"]
-          offer_id: string | null
           partner_id: string
           project_id: string | null
           property_address: string | null
@@ -41,7 +40,6 @@ export type Database = {
           is_active?: boolean
           landing_page_id?: string | null
           link_type?: Database["public"]["Enums"]["link_type"]
-          offer_id?: string | null
           partner_id: string
           project_id?: string | null
           property_address?: string | null
@@ -58,7 +56,6 @@ export type Database = {
           is_active?: boolean
           landing_page_id?: string | null
           link_type?: Database["public"]["Enums"]["link_type"]
-          offer_id?: string | null
           partner_id?: string
           project_id?: string | null
           property_address?: string | null
@@ -72,13 +69,6 @@ export type Database = {
             columns: ["landing_page_id"]
             isOneToOne: false
             referencedRelation: "landing_pages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "affiliate_links_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
           {
@@ -378,121 +368,6 @@ export type Database = {
           },
         ]
       }
-      offer_attachments: {
-        Row: {
-          attachment_type: string
-          created_at: string
-          file_name: string | null
-          file_size: number | null
-          file_type: string | null
-          file_url: string | null
-          id: string
-          link_title: string | null
-          link_url: string | null
-          offer_id: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          attachment_type?: string
-          created_at?: string
-          file_name?: string | null
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          link_title?: string | null
-          link_url?: string | null
-          offer_id: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          attachment_type?: string
-          created_at?: string
-          file_name?: string | null
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          link_title?: string | null
-          link_url?: string | null
-          offer_id?: string
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offer_attachments_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      offers: {
-        Row: {
-          address: string | null
-          area_m2: number | null
-          city: string | null
-          commission_amount: number | null
-          commission_percent: number | null
-          commission_type: string | null
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          is_active: boolean
-          name: string
-          offer_type: string | null
-          price: number | null
-          submitted_by_partner_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          area_m2?: number | null
-          city?: string | null
-          commission_amount?: number | null
-          commission_percent?: number | null
-          commission_type?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          offer_type?: string | null
-          price?: number | null
-          submitted_by_partner_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          area_m2?: number | null
-          city?: string | null
-          commission_amount?: number | null
-          commission_percent?: number | null
-          commission_type?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          offer_type?: string | null
-          price?: number | null
-          submitted_by_partner_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offers_submitted_by_partner_id_fkey"
-            columns: ["submitted_by_partner_id"]
-            isOneToOne: false
-            referencedRelation: "partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       partner_files: {
         Row: {
           batch_token: string | null
@@ -533,42 +408,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "partner_files_partner_id_fkey"
-            columns: ["partner_id"]
-            isOneToOne: false
-            referencedRelation: "partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      partner_offers: {
-        Row: {
-          created_at: string
-          id: string
-          offer_id: string
-          partner_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          offer_id: string
-          partner_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          offer_id?: string
-          partner_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "partner_offers_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "partner_offers_partner_id_fkey"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
