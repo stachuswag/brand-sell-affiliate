@@ -1,64 +1,45 @@
 
 
-# Usunięcie ofert — tylko projekty (inwestycje)
+# Przypisywanie projektów + boczne menu w panelu agenta
 
-Upraszczamy system: znikają oferty (offers), zostają tylko projekty inwestycyjne. Panel agenta dostaje rozbudowaną sekcję "Moje projekty".
+## 1. Partners — szybkie przypisanie projektów po kliknięciu w wiersz
 
-## Co znika
+Aktualnie przypisywanie projektów jest dostępne tylko przez przycisk "edytuj" (ołówek), który otwiera pełen formularz partnera. Dodajemy szybszy sposób:
 
-**Strony / nawigacja:**
-- Usunięcie strony `src/pages/Offers.tsx`
-- Usunięcie route `/offers` w `src/App.tsx`
-- Usunięcie linka "Oferty" z `src/components/AppShell.tsx` (admin nav)
-- Usunięcie zakładek "Oferty (przypisane)" i "Moje oferty" w `src/pages/AgentDashboard.tsx`
-- Usunięcie `src/components/OfferAttachmentsDialog.tsx`
+- **Klik w wiersz partnera** (lub w nazwę / dedykowany przycisk "Projekty") otwiera lekki dialog **"Przypisz projekty"** z samą listą projektów (checkboxy).
+- Dialog pokazuje nazwę partnera w tytule + listę wszystkich aktywnych projektów z miastami.
+- Zapis: `DELETE` + `INSERT` na `partner_projects` (jak teraz w `handleSave`), plus auto-utworzenie linków afiliacyjnych dla nowo dodanych projektów (kopiujemy logikę z `handleSave` w jedno miejsce — pomocnik `syncPartnerProjects`).
+- Po zapisie odświeżamy `partnerProjectsMap` i `partners` żeby chipy/grupowanie natychmiast się przeładowały.
+- Cały dotychczasowy formularz edycji partnera (pełny dialog) zostaje — tu chodzi tylko o szybką ścieżkę.
 
-**Baza danych (migracja):**
-- DROP TABLE `offer_attachments`
-- DROP TABLE `partner_offers`
-- DROP TABLE `offers`
-- Usunięcie kolumny `offer_id` z `affiliate_links` (link tylko do projektu)
-- Usunięcie kolumny `submitted_by_partner_id` z miejsc gdzie była używana w kontekście ofert
-- Storage bucket `offer-files` — pozostawiamy (sam się nie usunie, ale przestaje być używany)
+**UI**: w tabeli partnerów dodajemy małą ikonkę `Building2` / przycisk "Projekty" w kolumnie akcji + cały wiersz staje się klikalny (pomijamy klik na inne przyciski przez `e.stopPropagation`).
 
-## Co dostaje rozbudowę — "Moje projekty" w panelu agenta
+## 2. Agent Dashboard — boczne menu zamiast zakładek poziomych
 
-W `src/pages/AgentDashboard.tsx`, zakładka **Moje projekty** pokazuje wyłącznie projekty przypisane do partnera agenta (przez `partner_projects`). Dla każdego projektu karta z:
+Aktualnie `src/pages/AgentDashboard.tsx` używa `<Tabs>` z poziomym `TabsList`. Zamieniamy na układ dwukolumnowy podobny do admina:
 
-- Nazwa inwestycji + miasta (badge'y)
-- Opis
-- Link do folderu materiałów (Google Drive) — jeśli ustawiony
-- **Linki afiliacyjne** dla tego projektu (z tabeli `affiliate_links` gdzie `partner_id = mój` i `project_id = ten`) — pełny URL + przycisk "Kopiuj" + licznik kliknięć
-- Przycisk **"Zarejestruj leada"** — otwiera dialog (Soft Check + RODO) z prefillem `project_id` i odpowiedniego `affiliate_link_id`
-- Liczba leadów z tego projektu (z `contacts` przez `affiliate_links`)
-
-## Co poprawiamy w pozostałych miejscach
-
-- `src/pages/Links.tsx` — usunięcie wszelkich resztek pól `offer_id` / typu `property` (już zrobione wcześniej, dopilnować)
-- `src/pages/Contacts.tsx` — w dialogu "Dodaj lead ręcznie" zamiast partnera można opcjonalnie wybrać **projekt** (i partnera), generuje link `partner-projekt-MAN` jeśli brak
-- `src/pages/Reports.tsx` — jeśli odwołuje się do `offers`, przepiąć agregacje na `projects`
-- `src/pages/SendFiles.tsx` / `EmailCenter.tsx` — sprawdzić czy nie odwołują się do ofert; jeśli tak, usunąć
-
-## Migracja SQL (skrót)
-
-```sql
-ALTER TABLE affiliate_links DROP COLUMN offer_id;
-DROP TABLE offer_attachments;
-DROP TABLE partner_offers;
-DROP TABLE offers;
--- enum link_type: zostawiamy 'partner' i 'project' (jeśli istnieje 'property', usunąć z użycia)
+```text
+┌──────────────────────────────────────────┐
+│ Stats cards (jak teraz)                  │
+├────────────┬─────────────────────────────┤
+│ Sidebar    │  Zawartość wybranej sekcji  │
+│ • Projekty │                             │
+│ • Linki    │                             │
+│ • Leady    │                             │
+│ • Pliki    │                             │
+│ • Partn.   │                             │
+└────────────┴─────────────────────────────┘
 ```
+
+- Lewa kolumna: pionowa lista przycisków (`Briefcase`, `Link2`, `UserCheck`, `FolderOpen`, `Users`) z licznikami w badge'ach. Aktywna pozycja ma akcent (navy/gold).
+- Prawa kolumna: aktualnie wybrany panel (zachowujemy całą zawartość obecnych `TabsContent`).
+- Stan przez `useState<"projects" | "links" | "contacts" | "files" | "sub-partners">` — bez zmian w logice danych.
+- Mobile: sidebar zwija się do poziomego paska scrollowanego (overflow-x-auto) — żeby nie psuć małych ekranów.
 
 ## Pliki do edycji
 
-- `src/App.tsx` — usuń import i route Offers
-- `src/components/AppShell.tsx` — usuń pozycję "Oferty"
-- `src/pages/AgentDashboard.tsx` — usuń taby ofert, rozbuduj tab "Moje projekty"
-- `src/pages/Contacts.tsx` — przełącz selektor partnera na projekt+partner
-- `src/pages/Links.tsx` — sprzątanie po offer_id (jeśli zostało)
-- `src/pages/Reports.tsx` — sprzątanie odwołań do ofert
-- `src/pages/SendFiles.tsx`, `src/pages/EmailCenter.tsx` — sprzątanie jeśli dotyczy
-- DELETE: `src/pages/Offers.tsx`, `src/components/OfferAttachmentsDialog.tsx`
-- Nowa migracja SQL w `supabase/migrations/`
-- Aktualizacja memory: usunąć `mem://features/offer-management`, zaktualizować `mem://features/projects-management` o rozbudowany agent view
+- `src/pages/Partners.tsx` — dodaj `quickProjectsPartner` state + dialog "Przypisz projekty" + helper `syncPartnerProjects(partnerId, ids)`; ikona "Projekty" w wierszu i klikalny wiersz.
+- `src/pages/AgentDashboard.tsx` — wymień `<Tabs>` na układ flex z lewym sidebarem nav + prawym panelem. Cała logika (dialogi, fetch) bez zmian.
+
+Bez migracji bazy. Bez zmian w innych plikach.
 
