@@ -665,10 +665,11 @@ export default function AgentDashboard() {
                 })}
               </div>
             )}
-          </TabsContent>
+          </div>
+          )}
 
-          {/* LINKS TAB */}
-          <TabsContent value="links" className="space-y-4">
+          {activeSection === "links" && (
+          <div className="space-y-4">
               <CardContent className="p-0">
                 {links.length === 0 ? (
                   <div className="p-12 text-center">
