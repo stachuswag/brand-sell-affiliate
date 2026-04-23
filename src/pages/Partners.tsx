@@ -21,7 +21,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, Eye, EyeOff, Lock } from "lucide-react";
+import { Plus, Pencil, Building, Building2, Mail, Phone, Link2, Trash2, Sparkles, Rocket, Eye, EyeOff, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
@@ -86,6 +86,11 @@ export default function Partners() {
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Quick assign projects
+  const [quickProjectsPartner, setQuickProjectsPartner] = useState<Partner | null>(null);
+  const [quickProjectIds, setQuickProjectIds] = useState<string[]>([]);
+  const [quickSaving, setQuickSaving] = useState(false);
+
   const fetchPartners = async () => {
     const { data } = await supabase
       .from("partners")
@@ -132,6 +137,68 @@ export default function Partners() {
     setOpen(true);
   };
   const toggleProject = (projectId: string) => setSelectedProjectIds((prev) => prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]);
+
+  const slugify = (s: string) => s.toLowerCase()
+    .replace(/[ąćęłńóśźż]/g, (ch) => ({ ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z" }[ch] || ch))
+    .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+  // Sync partner_projects: replace assignments and auto-create affiliate links for newly added projects
+  const syncPartnerProjects = async (partnerId: string, partnerName: string, newProjectIds: string[]) => {
+    const { data: existingPP } = await supabase
+      .from("partner_projects").select("project_id").eq("partner_id", partnerId);
+    const existingProjectIds = new Set((existingPP || []).map((r) => r.project_id));
+    const newlyAdded = newProjectIds.filter((pid) => !existingProjectIds.has(pid));
+
+    await supabase.from("partner_projects").delete().eq("partner_id", partnerId);
+    if (newProjectIds.length > 0) {
+      await supabase.from("partner_projects").insert(newProjectIds.map((pid) => ({ partner_id: partnerId, project_id: pid })));
+    }
+
+    if (newlyAdded.length > 0) {
+      const partnerSlug = (slugify(partnerName).slice(0, 14)) || "partner";
+      const projectsForLinks = projects.filter((p) => newlyAdded.includes(p.id));
+      const linkRows = projectsForLinks.map((p) => {
+        const projectSlug = slugify(p.name).slice(0, 10);
+        const rand = Math.random().toString(36).slice(2, 6);
+        return {
+          partner_id: partnerId,
+          project_id: p.id,
+          link_type: "partner" as const,
+          property_name: p.name,
+          property_address: (p.cities || []).join(", ") || null,
+          tracking_code: `${partnerSlug}-${projectSlug}-${rand}`,
+          is_active: true,
+        };
+      });
+      if (linkRows.length > 0) {
+        const { error: linkErr } = await supabase.from("affiliate_links").insert(linkRows);
+        if (linkErr) {
+          toast({ title: "Uwaga: linki nie utworzone", description: linkErr.message, variant: "destructive" });
+        } else {
+          toast({ title: `Utworzono ${linkRows.length} link${linkRows.length === 1 ? "" : "ów"} afiliacyjnych` });
+        }
+      }
+    }
+  };
+
+  const openQuickProjects = async (p: Partner) => {
+    setQuickProjectsPartner(p);
+    const { data } = await supabase.from("partner_projects").select("project_id").eq("partner_id", p.id);
+    setQuickProjectIds(data?.map((r) => r.project_id) ?? []);
+  };
+
+  const toggleQuickProject = (pid: string) =>
+    setQuickProjectIds((prev) => prev.includes(pid) ? prev.filter((id) => id !== pid) : [...prev, pid]);
+
+  const handleQuickSave = async () => {
+    if (!quickProjectsPartner) return;
+    setQuickSaving(true);
+    await syncPartnerProjects(quickProjectsPartner.id, quickProjectsPartner.name, quickProjectIds);
+    setQuickSaving(false);
+    setQuickProjectsPartner(null);
+    fetchPartners();
+    fetchProjects();
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -487,7 +554,11 @@ export default function Partners() {
               };
 
               const renderPartnerRow = (p: Partner) => (
-                <TableRow key={p.id}>
+                <TableRow
+                  key={p.id}
+                  className={isAdmin ? "cursor-pointer" : ""}
+                  onClick={isAdmin ? () => openQuickProjects(p) : undefined}
+                >
                   <TableCell className="font-medium">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -499,7 +570,7 @@ export default function Partners() {
                       {!groupByProject && renderProjectChips(p.id)}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="text-sm space-y-0.5">
                       {p.contact_person && <div className="text-foreground">{p.contact_person}</div>}
                       {p.email && <a href={`mailto:${p.email}`} className="flex items-center gap-1 text-primary hover:underline text-xs"><Mail className="h-3 w-3" />{p.email}</a>}
@@ -510,7 +581,7 @@ export default function Partners() {
                     <span className="inline-flex items-center gap-1 text-sm"><Link2 className="h-3.5 w-3.5 text-muted-foreground" />{p.link_count ?? 0}</span>
                   </TableCell>
                   <TableCell className="text-center">{statusBadge(p)}</TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {p.clay_enriched_at ? (
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setClayDetail(p)}>
                         <Sparkles className="h-3 w-3 text-amber-500" /> Dane
@@ -520,15 +591,18 @@ export default function Partners() {
                     )}
                   </TableCell>
                   {isAdmin && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openQuickProjects(p)} title="Przypisz projekty">
+                          <Building2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEnrich(p)} disabled={enrichingId === p.id} title="Wzbogać dane (Clay + AI)">
                           <Sparkles className={`h-3.5 w-3.5 ${enrichingId === p.id ? "animate-spin" : ""}`} />
                         </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openOnboard(p)} title="Jeden Guzik — onboard agenta">
                           <Rocket className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(p)} title="Edytuj"><Pencil className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => toggleActive(p)} className="h-8 px-2 text-xs">{p.is_active ? "Off" : "On"}</Button>
                         <Button variant="ghost" size="sm" onClick={() => setDeletePartner(p)} className="h-8 w-8 p-0 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                       </div>
@@ -820,7 +894,39 @@ export default function Partners() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete confirmation */}
+        {/* Quick Assign Projects Dialog */}
+        <Dialog open={!!quickProjectsPartner} onOpenChange={(o) => !o && setQuickProjectsPartner(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> Przypisz projekty
+              </DialogTitle>
+              <DialogDescription>{quickProjectsPartner?.name}</DialogDescription>
+            </DialogHeader>
+            {projects.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Brak aktywnych projektów.</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                {projects.map((pr) => (
+                  <label key={pr.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-2 hover:bg-muted text-sm">
+                    <Checkbox checked={quickProjectIds.includes(pr.id)} onCheckedChange={() => toggleQuickProject(pr.id)} />
+                    <div className="flex-1">
+                      <div>{pr.name}</div>
+                      {pr.cities.length > 0 && <div className="text-xs text-muted-foreground">{pr.cities.join(", ")}</div>}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setQuickProjectsPartner(null)}>Anuluj</Button>
+              <Button onClick={handleQuickSave} disabled={quickSaving}>
+                {quickSaving ? "Zapisywanie..." : `Zapisz (${quickProjectIds.length})`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <AlertDialog open={!!deletePartner} onOpenChange={(o) => !o && setDeletePartner(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>

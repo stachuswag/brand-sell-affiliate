@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -139,6 +139,7 @@ export default function AgentDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"projects" | "links" | "contacts" | "files" | "sub-partners">("projects");
 
   // Add contact dialog
   const [contactOpen, setContactOpen] = useState(false);
@@ -524,18 +525,53 @@ export default function AgentDashboard() {
           </Card>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="projects">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="projects">Moje projekty ({projects.length})</TabsTrigger>
-            <TabsTrigger value="links">Wszystkie linki ({links.length})</TabsTrigger>
-            <TabsTrigger value="contacts">Klienci ({contacts.length})</TabsTrigger>
-            <TabsTrigger value="files">Pliki ({partnerFiles.length})</TabsTrigger>
-            <TabsTrigger value="sub-partners">Moi partnerzy ({subPartners.length})</TabsTrigger>
-          </TabsList>
+        {/* Sidebar nav + content */}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Sidebar */}
+          <nav className="md:w-56 md:shrink-0">
+            <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
+              {[
+                { id: "projects" as const, label: "Moje projekty", icon: Briefcase, count: projects.length },
+                { id: "links" as const, label: "Wszystkie linki", icon: Link2, count: links.length },
+                { id: "contacts" as const, label: "Klienci", icon: UserCheck, count: contacts.length },
+                { id: "files" as const, label: "Pliki", icon: FolderOpen, count: partnerFiles.length },
+                { id: "sub-partners" as const, label: "Moi partnerzy", icon: Users, count: subPartners.length },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors shrink-0 md:w-full md:justify-start",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="whitespace-nowrap">{item.label}</span>
+                    <Badge
+                      variant={isActive ? "secondary" : "outline"}
+                      className={cn(
+                        "ml-auto h-5 min-w-5 px-1.5 text-[10px]",
+                        isActive ? "bg-primary-foreground/20 text-primary-foreground border-0" : "",
+                      )}
+                    >
+                      {item.count}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
 
-          {/* PROJECTS TAB - main view */}
-          <TabsContent value="projects" className="space-y-4">
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+
+          {activeSection === "projects" && (
+          <div className="space-y-4">
             {projects.length === 0 ? (
               <Card>
                 <CardContent className="p-12 text-center">
@@ -619,10 +655,11 @@ export default function AgentDashboard() {
                 })}
               </div>
             )}
-          </TabsContent>
+          </div>
+          )}
 
-          {/* LINKS TAB */}
-          <TabsContent value="links" className="space-y-4">
+          {activeSection === "links" && (
+          <div className="space-y-4">
             <Card>
               <CardContent className="p-0">
                 {links.length === 0 ? (
@@ -679,10 +716,11 @@ export default function AgentDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+          )}
 
-          {/* CONTACTS TAB */}
-          <TabsContent value="contacts" className="space-y-4">
+          {activeSection === "contacts" && (
+          <div className="space-y-4">
             <div className="flex justify-end">
               <Button onClick={() => openLeadForProject("")} className="gap-2">
                 <Plus className="h-4 w-4" /> Dodaj klienta
@@ -760,10 +798,11 @@ export default function AgentDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+          )}
 
-          {/* FILES TAB */}
-          <TabsContent value="files" className="space-y-4">
+          {activeSection === "files" && (
+          <div className="space-y-4">
             <Card>
               <CardContent className="p-0">
                 {partnerFiles.length === 0 ? (
@@ -835,9 +874,11 @@ export default function AgentDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+          )}
 
-          <TabsContent value="sub-partners" className="space-y-4">
+          {activeSection === "sub-partners" && (
+          <div className="space-y-4">
             <div className="flex justify-end">
               <Button onClick={() => setSubPartnerOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Dodaj partnera
@@ -887,8 +928,11 @@ export default function AgentDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+          )}
+          </div>
+        </div>
+
 
         {/* Add Contact Dialog */}
         <Dialog open={contactOpen} onOpenChange={(open) => {
