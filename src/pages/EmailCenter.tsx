@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type EmailType = "onboard" | "offer" | "general" | "follow_up" | "proposal" | "question";
+type EmailType = "onboard" | "general" | "follow_up" | "proposal" | "question";
 
 interface Partner {
   id: string;
@@ -44,7 +44,6 @@ const emailTypeOptions: { value: EmailType; label: string; description: string; 
 
 const emailTypeSuccessLabels: Record<EmailType, string> = {
   onboard: "Onboarding wysłany! 🚀",
-  offer: "Email o ofercie wysłany! 📋",
   general: "Email wysłany! ✉️",
   follow_up: "Follow-up wysłany! 🔄",
   proposal: "Propozycja wysłana! 💡",
@@ -59,13 +58,11 @@ function generatePassword() {
 export default function EmailCenter() {
   const { toast } = useToast();
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedPartnerId, setSelectedPartnerId] = useState("");
   const [emailType, setEmailType] = useState<EmailType>("general");
-  const [offerId, setOfferId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [onboardPassword, setOnboardPassword] = useState("");
@@ -74,11 +71,9 @@ export default function EmailCenter() {
   useEffect(() => {
     Promise.all([
       supabase.from("partners").select("id, name, email, contact_person, agent_user_id, agent_status, login_email").eq("is_active", true).order("name"),
-      supabase.from("offers").select("id, name, city").eq("is_active", true).order("name"),
       supabase.from("projects").select("id, name").eq("is_active", true).order("name"),
-    ]).then(([p, o, pr]) => {
+    ]).then(([p, pr]) => {
       setPartners((p.data ?? []) as Partner[]);
-      setOffers((o.data ?? []) as Offer[]);
       setProjects((pr.data ?? []) as Project[]);
       setLoading(false);
     });
@@ -98,7 +93,6 @@ export default function EmailCenter() {
 
   const handleEmailTypeChange = (type: EmailType) => {
     setEmailType(type);
-    setOfferId("");
     setCustomMessage("");
     if (type === "onboard" && selectedPartner?.agent_user_id && !isOnboardSent) {
       setOnboardPassword(generatePassword());
@@ -109,7 +103,6 @@ export default function EmailCenter() {
 
   const canSend = () => {
     if (!selectedPartnerId) return false;
-    if (emailType === "offer" && !offerId) return false;
     if ((emailType === "proposal" || emailType === "question") && !customMessage.trim()) return false;
     if (emailType === "onboard" && isOnboardSent) return false;
     return true;
@@ -127,7 +120,6 @@ export default function EmailCenter() {
         email_type: emailType,
       };
       if (projectId) payload.project_id = projectId;
-      if (offerId) payload.offer_id = offerId;
       if (customMessage.trim()) payload.custom_message = customMessage.trim();
 
       // Handle onboard: create/reset account
