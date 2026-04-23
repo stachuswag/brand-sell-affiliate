@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCheck, TrendingUp, Filter, Phone, CheckCircle, Trash2 } from "lucide-react";
+import { UserCheck, TrendingUp, Filter, Phone, CheckCircle, Trash2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -97,6 +97,72 @@ export default function Contacts() {
   const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
   const [dealForm, setDealForm] = useState({ deal_value: "", commission_amount: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [leadForm, setLeadForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    message: "",
+    partner_id: "none",
+  });
+  const [savingLead, setSavingLead] = useState(false);
+
+  const handleAddLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leadForm.full_name.trim()) {
+      toast({ title: "Imię i nazwisko jest wymagane", variant: "destructive" });
+      return;
+    }
+    setSavingLead(true);
+    let affiliateLinkId: string | null = null;
+
+    if (leadForm.partner_id !== "none") {
+      // find or create a manual link for this partner (tracking_code ends with -MAN)
+      const { data: existing } = await supabase
+        .from("affiliate_links")
+        .select("id")
+        .eq("partner_id", leadForm.partner_id)
+        .like("tracking_code", "%-MAN")
+        .maybeSingle();
+      if (existing) {
+        affiliateLinkId = existing.id;
+      } else {
+        const partner = partners.find((p) => p.id === leadForm.partner_id);
+        const slug = (partner?.name || "partner").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 20);
+        const code = `${slug}-${Math.random().toString(36).slice(2, 6)}-MAN`;
+        const { data: newLink } = await supabase
+          .from("affiliate_links")
+          .insert({
+            partner_id: leadForm.partner_id,
+            tracking_code: code,
+            link_type: "partner",
+            created_by: user?.id,
+          })
+          .select("id")
+          .single();
+        affiliateLinkId = newLink?.id ?? null;
+      }
+    }
+
+    const { error } = await supabase.from("contacts").insert({
+      full_name: leadForm.full_name.trim(),
+      email: leadForm.email.trim() || null,
+      phone: leadForm.phone.trim() || null,
+      message: leadForm.message.trim() || null,
+      affiliate_link_id: affiliateLinkId,
+      status: "new",
+    });
+
+    setSavingLead(false);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Lead dodany ✓" });
+    setLeadForm({ full_name: "", email: "", phone: "", message: "", partner_id: "none" });
+    setAddLeadOpen(false);
+    fetchContacts();
+  };
 
   const fetchContacts = async () => {
     const { data } = await supabase
@@ -226,6 +292,9 @@ export default function Contacts() {
             <h1 className="text-2xl font-bold text-foreground">Kontakty / Leady</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Wszystkie kontakty z linków afiliacyjnych</p>
           </div>
+          <Button onClick={() => setAddLeadOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" /> Dodaj lead ręcznie
+          </Button>
         </div>
 
         {/* Filters */}
@@ -555,6 +624,79 @@ export default function Contacts() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Add Lead manually */}
+      <Dialog open={addLeadOpen} onOpenChange={setAddLeadOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Dodaj lead ręcznie
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddLead} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Imię i nazwisko *</Label>
+              <Input
+                value={leadForm.full_name}
+                onChange={(e) => setLeadForm({ ...leadForm, full_name: e.target.value })}
+                placeholder="Jan Kowalski"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={leadForm.email}
+                  onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
+                  placeholder="jan@example.pl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefon</Label>
+                <Input
+                  value={leadForm.phone}
+                  onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                  placeholder="+48 ..."
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Przypisz do partnera</Label>
+              <Select value={leadForm.partner_id} onValueChange={(v) => setLeadForm({ ...leadForm, partner_id: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Bez partnera —</SelectItem>
+                  {partners.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Wiadomość / notatki</Label>
+              <Textarea
+                value={leadForm.message}
+                onChange={(e) => setLeadForm({ ...leadForm, message: e.target.value })}
+                placeholder="Opcjonalna wiadomość od klienta lub notatka..."
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddLeadOpen(false)}>Anuluj</Button>
+              <Button type="submit" disabled={savingLead} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {savingLead ? "Dodawanie..." : "Dodaj lead"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete contact confirmation */}
       <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
