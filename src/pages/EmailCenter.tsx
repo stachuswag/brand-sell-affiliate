@@ -29,12 +29,6 @@ interface Partner {
   login_email: string | null;
 }
 
-interface Offer {
-  id: string;
-  name: string;
-  city: string | null;
-}
-
 interface Project {
   id: string;
   name: string;
@@ -42,7 +36,6 @@ interface Project {
 
 const emailTypeOptions: { value: EmailType; label: string; description: string; icon: string }[] = [
   { value: "onboard", label: "Onboarding", description: "zatwierdzenie agenta + dane logowania", icon: "🚀" },
-  { value: "offer", label: "Oferta", description: "mail o konkretnej ofercie", icon: "📋" },
   { value: "general", label: "Ogólny", description: "podziękowanie i link afiliacyjny", icon: "✉️" },
   { value: "follow_up", label: "Follow-up", description: "krótkie przypomnienie", icon: "🔄" },
   { value: "proposal", label: "Propozycja", description: "własna propozycja współpracy", icon: "💡" },
