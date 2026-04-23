@@ -52,16 +52,16 @@ import {
   Check,
   ExternalLink,
   FileText,
-  Package,
   Trash2,
   Users,
   Download,
   Search,
   ShieldCheck,
   AlertTriangle,
+  Briefcase,
+  FolderOpen,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { OfferAttachmentsDialog } from "@/components/OfferAttachmentsDialog";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 
@@ -72,8 +72,8 @@ interface AffiliateLink {
   property_name: string | null;
   is_active: boolean;
   created_at: string;
-  offer_id: string | null;
-  offers?: { name: string; city: string | null } | null;
+  project_id: string | null;
+  projects?: { name: string; cities: string[] } | null;
 }
 
 interface Contact {
@@ -84,28 +84,16 @@ interface Contact {
   message: string | null;
   status: string;
   created_at: string;
-  affiliate_links?: { tracking_code: string; property_name: string | null } | null;
+  affiliate_link_id: string | null;
+  affiliate_links?: { tracking_code: string; property_name: string | null; project_id: string | null } | null;
 }
 
-interface Offer {
+interface Project {
   id: string;
   name: string;
-  city: string | null;
-  address: string | null;
-  price: number | null;
-  commission_type: string | null;
-  commission_percent: number | null;
-  commission_amount: number | null;
-  submitted_by_partner_id?: string | null;
-}
-
-interface PartnerOffer {
-  id: string;
-  name: string;
-  city: string | null;
-  address: string | null;
-  price: number | null;
-  submitted_by_partner_id?: string | null;
+  description: string | null;
+  cities: string[];
+  materials_folder_url: string | null;
 }
 
 interface SubPartner {
@@ -134,10 +122,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   no_deal: { label: "Brak transakcji", className: "bg-muted text-muted-foreground border-border" },
 };
 
-function generateCode(partnerName: string): string {
+function generateCode(partnerName: string, suffix?: string): string {
   const prefix = partnerName.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${rand}`;
+  return suffix ? `${prefix}-${rand}-${suffix}` : `${prefix}-${rand}`;
 }
 
 export default function AgentDashboard() {
@@ -148,11 +136,9 @@ export default function AgentDashboard() {
   const [partnerName, setPartnerName] = useState<string>("");
   const [links, setLinks] = useState<AffiliateLink[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [partnerOffers, setPartnerOffers] = useState<PartnerOffer[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
-  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   // Add contact dialog
   const [contactOpen, setContactOpen] = useState(false);
@@ -162,28 +148,9 @@ export default function AgentDashboard() {
     phone: "",
     message: "",
     link_id: "",
+    project_id: "",
   });
   const [savingContact, setSavingContact] = useState(false);
-
-  // Create link dialog
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linkForm, setLinkForm] = useState({
-    offer_id: "",
-    link_type: "partner" as "partner" | "property",
-    property_name: "",
-  });
-  const [savingLink, setSavingLink] = useState(false);
-
-  // Add offer dialog
-  const [offerOpen, setOfferOpen] = useState(false);
-  const [offerForm, setOfferForm] = useState({
-    name: "",
-    city: "",
-    address: "",
-    price: "",
-    description: "",
-  });
-  const [savingOffer, setSavingOffer] = useState(false);
 
   // Sub-partners
   const [subPartners, setSubPartners] = useState<SubPartner[]>([]);
@@ -238,56 +205,45 @@ export default function AgentDashboard() {
 
     if (partnerData) setPartnerName(partnerData.name);
 
-    // Load links
+    // Load links (with project info)
     const { data: linksData } = await supabase
       .from("affiliate_links")
-      .select("*, offers(name, city)")
+      .select("*, projects(name, cities)")
       .eq("partner_id", pid)
       .order("created_at", { ascending: false });
 
-    if (linksData) setLinks(linksData as AffiliateLink[]);
+    if (linksData) setLinks(linksData as unknown as AffiliateLink[]);
 
     // Load contacts through this partner's links
     const linkIds = (linksData ?? []).map((l) => l.id);
     if (linkIds.length > 0) {
       const { data: contactsData } = await supabase
         .from("contacts")
-        .select("*, affiliate_links(tracking_code, property_name)")
+        .select("*, affiliate_links(tracking_code, property_name, project_id)")
         .in("affiliate_link_id", linkIds)
         .order("created_at", { ascending: false });
 
-      if (contactsData) setContacts(contactsData as Contact[]);
+      if (contactsData) setContacts(contactsData as unknown as Contact[]);
     }
 
-    // Load offers assigned to this partner (from admin)
-    const { data: assignedOfferIds } = await supabase
-      .from("partner_offers")
-      .select("offer_id")
+    // Load assigned projects
+    const { data: assignedProjectIds } = await supabase
+      .from("partner_projects")
+      .select("project_id")
       .eq("partner_id", pid);
 
-    const offerIds = assignedOfferIds?.map((r) => r.offer_id) ?? [];
-
-    if (offerIds.length > 0) {
-      const { data: offersData } = await supabase
-        .from("offers")
-        .select("id, name, city, address, price, commission_type, commission_percent, commission_amount, submitted_by_partner_id")
-        .in("id", offerIds)
+    const projectIds = assignedProjectIds?.map((r) => r.project_id) ?? [];
+    if (projectIds.length > 0) {
+      const { data: projectsData } = await supabase
+        .from("projects")
+        .select("id, name, description, cities, materials_folder_url")
+        .in("id", projectIds)
         .eq("is_active", true)
         .order("name");
-      if (offersData) setOffers(offersData as Offer[]);
+      if (projectsData) setProjects(projectsData as Project[]);
     } else {
-      setOffers([]);
+      setProjects([]);
     }
-
-    // Load offers submitted by this partner
-    const { data: myOffers } = await supabase
-      .from("offers")
-      .select("id, name, city, address, price, submitted_by_partner_id")
-      .eq("submitted_by_partner_id", pid)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false });
-
-    setPartnerOffers((myOffers ?? []) as PartnerOffer[]);
 
     // Load sub-partners
     const { data: subData } = await supabase
@@ -317,6 +273,44 @@ export default function AgentDashboard() {
     setCopied(code);
     setTimeout(() => setCopied(null), 2000);
     toast({ title: "Link skopiowany!" });
+  };
+
+  // Get/create a project-specific link for this partner
+  const getOrCreateProjectLink = async (projectId: string): Promise<string | null> => {
+    if (!partnerId) return null;
+    const existing = links.find((l) => l.project_id === projectId);
+    if (existing) return existing.id;
+
+    const project = projects.find((p) => p.id === projectId);
+    const code = generateCode(partnerName);
+    const { data: newLink, error } = await supabase
+      .from("affiliate_links")
+      .insert({
+        partner_id: partnerId,
+        project_id: projectId,
+        tracking_code: code,
+        link_type: "partner" as const,
+        property_name: project?.name ?? null,
+        property_address: project?.cities?.join(", ") ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      toast({ title: "Błąd tworzenia linku", description: error.message, variant: "destructive" });
+      return null;
+    }
+    return newLink?.id ?? null;
+  };
+
+  const openLeadForProject = (projectId: string) => {
+    setContactForm({ full_name: "", email: "", phone: "", message: "", link_id: "", project_id: projectId });
+    setSoftCheckStep("check");
+    setSoftCheckName("");
+    setSoftCheckPhone("");
+    setSoftCheckResult(null);
+    setRodoConsent(false);
+    setContactOpen(true);
   };
 
   const handleSoftCheck = async () => {
@@ -349,12 +343,18 @@ export default function AgentDashboard() {
     if (!contactForm.full_name || !partnerId || !rodoConsent) return;
     setSavingContact(true);
 
-    // Use selected link or first available; if none, create a temporary "manual" link
-    let linkId = contactForm.link_id || links[0]?.id || null;
+    // Determine link: project-specific > selected > first > new manual
+    let linkId: string | null = contactForm.link_id || null;
+
+    if (!linkId && contactForm.project_id) {
+      linkId = await getOrCreateProjectLink(contactForm.project_id);
+    }
+
+    if (!linkId) linkId = links[0]?.id ?? null;
 
     if (!linkId) {
-      // Create a default link for manual contacts
-      const code = generateCode(partnerName) + "-MAN";
+      // Create a manual link as last resort
+      const code = generateCode(partnerName, "MAN");
       const { data: newLink, error: linkErr } = await supabase
         .from("affiliate_links")
         .insert({
@@ -387,7 +387,6 @@ export default function AgentDashboard() {
       toast({ title: "Błąd", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Klient dodany!", description: "Powiadomienie wysłane do admina." });
-      // Send SMS notification
       supabase.functions.invoke("notify-sms", {
         body: {
           full_name: contactForm.full_name,
@@ -399,76 +398,10 @@ export default function AgentDashboard() {
         },
       }).catch(() => {});
       setContactOpen(false);
-      setContactForm({ full_name: "", email: "", phone: "", message: "", link_id: "" });
+      setContactForm({ full_name: "", email: "", phone: "", message: "", link_id: "", project_id: "" });
       loadAgentData();
     }
     setSavingContact(false);
-  };
-
-  const handleCreateLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!partnerId) return;
-    setSavingLink(true);
-
-    const code = generateCode(partnerName);
-    const offer = offers.find((o) => o.id === linkForm.offer_id);
-
-    const { error } = await supabase.from("affiliate_links").insert({
-      partner_id: partnerId,
-      tracking_code: code,
-      link_type: linkForm.link_type,
-      offer_id: linkForm.offer_id || null,
-      property_name: offer?.name || linkForm.property_name || null,
-      property_address: offer ? [offer.address, offer.city].filter(Boolean).join(", ") : null,
-    });
-
-    if (error) {
-      toast({ title: "Błąd", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Link utworzony!" });
-      setLinkOpen(false);
-      setLinkForm({ offer_id: "", link_type: "partner", property_name: "" });
-      loadAgentData();
-    }
-    setSavingLink(false);
-  };
-
-  const handleAddOffer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!offerForm.name.trim() || !partnerId) return;
-    setSavingOffer(true);
-
-    const { data: newOffer, error } = await supabase
-      .from("offers")
-      .insert({
-        name: offerForm.name,
-        city: offerForm.city || null,
-        address: offerForm.address || null,
-        price: offerForm.price ? parseFloat(offerForm.price) : null,
-        description: offerForm.description || null,
-        submitted_by_partner_id: partnerId,
-        created_by: user!.id,
-      })
-      .select("id")
-      .single();
-
-    if (error || !newOffer) {
-      toast({ title: "Błąd", description: error?.message ?? "Nie udało się dodać oferty", variant: "destructive" });
-      setSavingOffer(false);
-      return;
-    }
-
-    // Auto-assign to this partner
-    await supabase.from("partner_offers").insert({
-      partner_id: partnerId,
-      offer_id: newOffer.id,
-    });
-
-    toast({ title: "Oferta dodana!", description: "Oferta została przypisana do Twojego konta." });
-    setOfferOpen(false);
-    setOfferForm({ name: "", city: "", address: "", price: "", description: "" });
-    loadAgentData();
-    setSavingOffer(false);
   };
 
   const handleDeleteContact = async () => {
@@ -507,16 +440,10 @@ export default function AgentDashboard() {
     setSavingSubPartner(false);
   };
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(n);
-
-  const getCommission = (o: Offer) => {
-    if (o.commission_type === "amount" && o.commission_amount)
-      return fmt(o.commission_amount);
-    if (o.commission_type === "percent" && o.commission_percent)
-      return `${o.commission_percent}%`;
-    return "—";
-  };
+  // Helpers for project section
+  const linksForProject = (pid: string) => links.filter((l) => l.project_id === pid);
+  const leadsCountForProject = (pid: string) =>
+    contacts.filter((c) => c.affiliate_links?.project_id === pid).length;
 
   if (loading) {
     return (
@@ -552,6 +479,17 @@ export default function AgentDashboard() {
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Briefcase className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{projects.length}</p>
+                <p className="text-xs text-muted-foreground">Projekty</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Link2 className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -584,43 +522,113 @@ export default function AgentDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                <Package className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{partnerOffers.length}</p>
-                <p className="text-xs text-muted-foreground">Moje oferty</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="links">
+        <Tabs defaultValue="projects">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="links">Moje linki ({links.length})</TabsTrigger>
+            <TabsTrigger value="projects">Moje projekty ({projects.length})</TabsTrigger>
+            <TabsTrigger value="links">Wszystkie linki ({links.length})</TabsTrigger>
             <TabsTrigger value="contacts">Klienci ({contacts.length})</TabsTrigger>
-            <TabsTrigger value="offers">Oferty ({offers.length})</TabsTrigger>
-            <TabsTrigger value="my-offers">Moje oferty ({partnerOffers.length})</TabsTrigger>
             <TabsTrigger value="files">Pliki ({partnerFiles.length})</TabsTrigger>
             <TabsTrigger value="sub-partners">Moi partnerzy ({subPartners.length})</TabsTrigger>
           </TabsList>
 
+          {/* PROJECTS TAB - main view */}
+          <TabsContent value="projects" className="space-y-4">
+            {projects.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Briefcase className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Brak przypisanych projektów inwestycyjnych. Skontaktuj się z administratorem.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {projects.map((p) => {
+                  const projLinks = linksForProject(p.id);
+                  const leads = leadsCountForProject(p.id);
+                  return (
+                    <Card key={p.id} className="overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <CardTitle className="text-base font-semibold">{p.name}</CardTitle>
+                            {p.cities?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {p.cities.map((c) => (
+                                  <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30 shrink-0">
+                            {leads} {leads === 1 ? "lead" : "leadów"}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {p.description && (
+                          <p className="text-xs text-muted-foreground">{p.description}</p>
+                        )}
+
+                        {p.materials_folder_url && (
+                          <a
+                            href={p.materials_folder_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 text-xs text-primary hover:underline"
+                          >
+                            <FolderOpen className="h-3.5 w-3.5" />
+                            Folder z materiałami
+                          </a>
+                        )}
+
+                        {/* Affiliate links for this project */}
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-semibold text-foreground">Linki afiliacyjne</p>
+                          {projLinks.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">Brak — kliknij "Zarejestruj leada", link utworzy się automatycznie.</p>
+                          ) : (
+                            projLinks.map((l) => (
+                              <div key={l.id} className="flex items-center gap-2 rounded-md border bg-muted/40 p-2">
+                                <code className="flex-1 truncate text-xs font-mono text-foreground">
+                                  {buildTrackingUrl(l.tracking_code)}
+                                </code>
+                                <Button variant="ghost" size="sm" onClick={() => handleCopy(l.tracking_code)} className="h-7 w-7 p-0 shrink-0">
+                                  {copied === l.tracking_code ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => window.open(buildTrackingUrl(l.tracking_code), "_blank")} className="h-7 w-7 p-0 shrink-0">
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        <Button
+                          onClick={() => openLeadForProject(p.id)}
+                          className="w-full gap-2"
+                          size="sm"
+                        >
+                          <Plus className="h-4 w-4" /> Zarejestruj leada dla tego projektu
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
           {/* LINKS TAB */}
           <TabsContent value="links" className="space-y-4">
-            <div className="flex justify-end">
-              <Button onClick={() => setLinkOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" /> Nowy link
-              </Button>
-            </div>
             <Card>
               <CardContent className="p-0">
                 {links.length === 0 ? (
                   <div className="p-12 text-center">
                     <Link2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">Brak linków. Utwórz pierwszy link.</p>
+                    <p className="text-sm text-muted-foreground">Brak linków. Linki tworzą się automatycznie dla każdego przypisanego projektu.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -628,8 +636,7 @@ export default function AgentDashboard() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Kod</TableHead>
-                          <TableHead>Typ</TableHead>
-                          <TableHead>Nieruchomość</TableHead>
+                          <TableHead>Projekt</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Utworzono</TableHead>
                           <TableHead className="text-right">Akcje</TableHead>
@@ -643,13 +650,8 @@ export default function AgentDashboard() {
                                 {l.tracking_code}
                               </code>
                             </TableCell>
-                            <TableCell>
-                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${l.link_type === "property" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-purple-50 text-purple-700 border-purple-200"}`}>
-                                {l.link_type === "property" ? "Oferta" : "Ogólny"}
-                              </span>
-                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {l.property_name ?? l.offers?.name ?? "—"}
+                              {l.projects?.name ?? l.property_name ?? <span className="italic text-xs">Ogólny</span>}
                             </TableCell>
                             <TableCell>
                               <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${l.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
@@ -682,7 +684,7 @@ export default function AgentDashboard() {
           {/* CONTACTS TAB */}
           <TabsContent value="contacts" className="space-y-4">
             <div className="flex justify-end">
-              <Button onClick={() => setContactOpen(true)} className="gap-2">
+              <Button onClick={() => openLeadForProject("")} className="gap-2">
                 <Plus className="h-4 w-4" /> Dodaj klienta
               </Button>
             </div>
@@ -760,78 +762,6 @@ export default function AgentDashboard() {
             </Card>
           </TabsContent>
 
-          {/* ASSIGNED OFFERS TAB */}
-          <TabsContent value="offers">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {offers.map((o) => (
-                <Card
-                  key={o.id}
-                  className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
-                  onClick={() => setSelectedOffer(o)}
-                >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-semibold">{o.name}</CardTitle>
-                    {o.city && <p className="text-xs text-muted-foreground">{o.city}</p>}
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {o.address && <p className="text-xs text-muted-foreground">{o.address}</p>}
-                    <div className="flex items-center justify-between">
-                      {o.price && (
-                        <span className="text-sm font-bold text-foreground">{fmt(o.price)}</span>
-                      )}
-                      <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">
-                        Prowizja: {getCommission(o)}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <FileText className="h-3 w-3" /> Kliknij, aby zobaczyć pliki i linki
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-              {offers.length === 0 && (
-                <div className="col-span-full p-12 text-center text-muted-foreground text-sm">
-                  Brak przypisanych ofert od administratora.
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* MY (PARTNER) OFFERS TAB */}
-          <TabsContent value="my-offers" className="space-y-4">
-            <div className="flex justify-end">
-              <Button onClick={() => setOfferOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" /> Dodaj ofertę
-              </Button>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {partnerOffers.map((o) => (
-                <Card key={o.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-base font-semibold">{o.name}</CardTitle>
-                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                        Twoja oferta
-                      </Badge>
-                    </div>
-                    {o.city && <p className="text-xs text-muted-foreground">{o.city}</p>}
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {o.address && <p className="text-xs text-muted-foreground">{o.address}</p>}
-                    {o.price && (
-                      <span className="text-sm font-bold text-foreground">{fmt(o.price)}</span>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-              {partnerOffers.length === 0 && (
-                <div className="col-span-full p-12 text-center text-muted-foreground text-sm">
-                  Nie dodałeś jeszcze żadnych ofert. Kliknij "Dodaj ofertę" aby dodać swoją pierwszą.
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
           {/* FILES TAB */}
           <TabsContent value="files" className="space-y-4">
             <Card>
@@ -876,40 +806,22 @@ export default function AgentDashboard() {
                                 className="gap-1.5 h-8 text-xs"
                                 onClick={async () => {
                                   const path = decodeURIComponent(f.file_url.split("/partner-files/")[1] ?? "");
-
                                   if (!path) {
-                                    toast({
-                                      title: "Błąd pobierania",
-                                      description: "Nie udało się odczytać ścieżki pliku.",
-                                      variant: "destructive",
-                                    });
+                                    toast({ title: "Błąd pobierania", description: "Nie udało się odczytać ścieżki pliku.", variant: "destructive" });
                                     return;
                                   }
-
-                                  const { data, error } = await supabase.storage
-                                    .from("partner-files")
-                                    .download(path);
-
+                                  const { data, error } = await supabase.storage.from("partner-files").download(path);
                                   if (error || !data) {
-                                    toast({
-                                      title: "Błąd pobierania",
-                                      description: "Nie udało się pobrać pliku.",
-                                      variant: "destructive",
-                                    });
+                                    toast({ title: "Błąd pobierania", description: "Nie udało się pobrać pliku.", variant: "destructive" });
                                     return;
                                   }
-
                                   const downloadUrl = window.URL.createObjectURL(data);
                                   const link = document.createElement("a");
                                   link.href = downloadUrl;
                                   link.download = f.file_name;
                                   document.body.appendChild(link);
                                   link.click();
-
-                                  setTimeout(() => {
-                                    link.remove();
-                                    window.URL.revokeObjectURL(downloadUrl);
-                                  }, 1000);
+                                  setTimeout(() => { link.remove(); window.URL.revokeObjectURL(downloadUrl); }, 1000);
                                 }}
                               >
                                 <Download className="h-3.5 w-3.5" /> Pobierz
@@ -987,7 +899,7 @@ export default function AgentDashboard() {
             setSoftCheckPhone("");
             setSoftCheckResult(null);
             setRodoConsent(false);
-            setContactForm({ full_name: "", email: "", phone: "", message: "", link_id: "" });
+            setContactForm({ full_name: "", email: "", phone: "", message: "", link_id: "", project_id: "" });
           }
         }}>
           <DialogContent className="max-w-md">
@@ -1047,6 +959,13 @@ export default function AgentDashboard() {
                   <ShieldCheck className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
                   <p className="text-sm text-green-700 dark:text-green-400">Klient zweryfikowany — nie znaleziono w bazie.</p>
                 </div>
+
+                {contactForm.project_id && (
+                  <div className="rounded-md bg-muted/50 p-2 text-xs">
+                    Projekt: <strong>{projects.find((p) => p.id === contactForm.project_id)?.name}</strong>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Imię i nazwisko *</Label>
                   <Input
@@ -1075,23 +994,27 @@ export default function AgentDashboard() {
                     />
                   </div>
                 </div>
-                {links.length > 0 && (
+
+                {!contactForm.project_id && projects.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Przypisz do linku (opcjonalnie)</Label>
-                    <Select value={contactForm.link_id} onValueChange={(v) => setContactForm({ ...contactForm, link_id: v })}>
+                    <Label>Projekt (opcjonalnie)</Label>
+                    <Select
+                      value={contactForm.project_id || "none"}
+                      onValueChange={(v) => setContactForm({ ...contactForm, project_id: v === "none" ? "" : v })}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Automatycznie" />
+                        <SelectValue placeholder="Wybierz projekt..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {links.map((l) => (
-                          <SelectItem key={l.id} value={l.id}>
-                            {l.tracking_code}{l.property_name ? ` — ${l.property_name}` : ""}
-                          </SelectItem>
+                        <SelectItem value="none">— Bez projektu —</SelectItem>
+                        {projects.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 )}
+
                 <div className="space-y-2">
                   <Label>Wiadomość / Notatka</Label>
                   <Textarea
@@ -1102,7 +1025,6 @@ export default function AgentDashboard() {
                   />
                 </div>
 
-                {/* RODO consent checkbox */}
                 <div className="flex items-start gap-3 rounded-lg border p-3">
                   <Checkbox
                     id="rodo-consent"
@@ -1126,123 +1048,7 @@ export default function AgentDashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* Create Link Dialog */}
-        <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Utwórz nowy link</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateLink} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Typ linku</Label>
-                <Select value={linkForm.link_type} onValueChange={(v) => setLinkForm({ ...linkForm, link_type: v as "partner" | "property" })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="partner">Ogólny</SelectItem>
-                    <SelectItem value="property">Per oferta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {linkForm.link_type === "property" && (
-                <div className="space-y-2">
-                  <Label>Wybierz ofertę</Label>
-                  <Select value={linkForm.offer_id} onValueChange={(v) => setLinkForm({ ...linkForm, offer_id: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Wybierz ofertę" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {offers.map((o) => (
-                        <SelectItem key={o.id} value={o.id}>
-                          {o.name}{o.city ? ` • ${o.city}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setLinkOpen(false)}>Anuluj</Button>
-                <Button type="submit" disabled={savingLink}>
-                  {savingLink ? "Tworzenie..." : "Utwórz link"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Add Offer Dialog */}
-        <Dialog open={offerOpen} onOpenChange={setOfferOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Dodaj swoją ofertę</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddOffer} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nazwa oferty *</Label>
-                <Input
-                  value={offerForm.name}
-                  onChange={(e) => setOfferForm({ ...offerForm, name: e.target.value })}
-                  placeholder="np. Apartament ul. Kwiatowa 5"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Miasto</Label>
-                  <Input
-                    value={offerForm.city}
-                    onChange={(e) => setOfferForm({ ...offerForm, city: e.target.value })}
-                    placeholder="Warszawa"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cena (PLN)</Label>
-                  <Input
-                    type="number"
-                    value={offerForm.price}
-                    onChange={(e) => setOfferForm({ ...offerForm, price: e.target.value })}
-                    placeholder="500000"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Adres</Label>
-                <Input
-                  value={offerForm.address}
-                  onChange={(e) => setOfferForm({ ...offerForm, address: e.target.value })}
-                  placeholder="ul. Kwiatowa 5/3"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Opis</Label>
-                <Textarea
-                  value={offerForm.description}
-                  onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })}
-                  placeholder="Opis nieruchomości..."
-                  rows={3}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOfferOpen(false)}>Anuluj</Button>
-                <Button type="submit" disabled={savingOffer || !offerForm.name.trim()}>
-                  {savingOffer ? "Dodawanie..." : "Dodaj ofertę"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Offer attachments dialog (read-only for agents) */}
-        <OfferAttachmentsDialog
-          offer={selectedOffer}
-          open={!!selectedOffer}
-          onOpenChange={(o) => !o && setSelectedOffer(null)}
-          readOnly
-        />
-
-        {/* Add Sub-Partner Dialog */}
+        {/* Sub-Partner Dialog */}
         <Dialog open={subPartnerOpen} onOpenChange={setSubPartnerOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -1251,51 +1057,33 @@ export default function AgentDashboard() {
             <form onSubmit={handleAddSubPartner} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nazwa firmy *</Label>
-                <Input
-                  value={subPartnerForm.name}
-                  onChange={(e) => setSubPartnerForm({ ...subPartnerForm, name: e.target.value })}
-                  placeholder="np. Biuro Nieruchomości XYZ"
-                  required
-                />
+                <Input value={subPartnerForm.name} onChange={(e) => setSubPartnerForm({ ...subPartnerForm, name: e.target.value })} required />
               </div>
               <div className="space-y-2">
                 <Label>Osoba kontaktowa</Label>
-                <Input
-                  value={subPartnerForm.contact_person}
-                  onChange={(e) => setSubPartnerForm({ ...subPartnerForm, contact_person: e.target.value })}
-                  placeholder="Jan Kowalski"
-                />
+                <Input value={subPartnerForm.contact_person} onChange={(e) => setSubPartnerForm({ ...subPartnerForm, contact_person: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={subPartnerForm.email}
-                    onChange={(e) => setSubPartnerForm({ ...subPartnerForm, email: e.target.value })}
-                    placeholder="kontakt@firma.pl"
-                  />
+                  <Input type="email" value={subPartnerForm.email} onChange={(e) => setSubPartnerForm({ ...subPartnerForm, email: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefon</Label>
-                  <Input
-                    value={subPartnerForm.phone}
-                    onChange={(e) => setSubPartnerForm({ ...subPartnerForm, phone: e.target.value })}
-                    placeholder="+48 500 000 000"
-                  />
+                  <Input value={subPartnerForm.phone} onChange={(e) => setSubPartnerForm({ ...subPartnerForm, phone: e.target.value })} />
                 </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setSubPartnerOpen(false)}>Anuluj</Button>
                 <Button type="submit" disabled={savingSubPartner || !subPartnerForm.name.trim()}>
-                  {savingSubPartner ? "Dodawanie..." : "Dodaj partnera"}
+                  {savingSubPartner ? "Dodawanie..." : "Dodaj"}
                 </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
 
-        {/* Delete Contact Confirmation */}
+        {/* Delete contact confirmation */}
         <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>

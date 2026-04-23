@@ -67,8 +67,9 @@ interface Contact {
     tracking_code: string;
     property_name: string | null;
     link_type: string;
-    offer_id: string | null;
+    project_id: string | null;
     partners: { name: string } | null;
+    projects: { name: string } | null;
   } | null;
 }
 
@@ -167,7 +168,7 @@ export default function Contacts() {
   const fetchContacts = async () => {
     const { data } = await supabase
       .from("contacts")
-      .select(`*, affiliate_links(tracking_code, property_name, link_type, offer_id, partners(name))`)
+      .select(`*, affiliate_links(tracking_code, property_name, link_type, project_id, partners(name), projects(name))`)
       .order("created_at", { ascending: false });
     if (data) setContacts(data as any);
     setLoading(false);
@@ -193,22 +194,7 @@ export default function Contacts() {
 
   const openDealDialog = async (c: Contact) => {
     setSelected(c);
-    let autoCommission = "";
-    if (c.affiliate_links?.offer_id) {
-      const { data: offer } = await supabase
-        .from("offers")
-        .select("commission_type, commission_percent, commission_amount, price")
-        .eq("id", c.affiliate_links.offer_id)
-        .single();
-      if (offer) {
-        if (offer.commission_type === "amount" && offer.commission_amount != null) {
-          autoCommission = offer.commission_amount.toFixed(0);
-        } else if (offer.commission_percent != null && offer.price != null) {
-          autoCommission = ((offer.price * offer.commission_percent) / 100).toFixed(0);
-        }
-      }
-    }
-    setDealForm({ deal_value: "", commission_amount: autoCommission, notes: "" });
+    setDealForm({ deal_value: "", commission_amount: "", notes: "" });
     setDealOpen(true);
     setDetailOpen(false);
   };
@@ -604,9 +590,6 @@ export default function Contacts() {
                     onChange={(e) => setDealForm({ ...dealForm, commission_amount: e.target.value })}
                     placeholder="np. 8500"
                   />
-                  {dealForm.commission_amount && selected?.affiliate_links?.offer_id && (
-                    <p className="text-xs text-success">✓ Auto-uzupełniono z oferty</p>
-                  )}
                 </div>
               </div>
               <div className="space-y-2">
