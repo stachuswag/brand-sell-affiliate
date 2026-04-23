@@ -79,6 +79,8 @@ export default function Partners() {
   // Clay + Onboard
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [partnerProjectsMap, setPartnerProjectsMap] = useState<Record<string, string[]>>({});
+  const [groupByProject, setGroupByProject] = useState(true);
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
