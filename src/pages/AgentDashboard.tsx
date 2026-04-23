@@ -526,16 +526,6 @@ export default function AgentDashboard() {
         </div>
 
         {/* Sidebar nav + content */}
-        {(() => {
-          const navItems = [
-            { id: "projects" as const, label: "Moje projekty", icon: Briefcase, count: projects.length },
-            { id: "links" as const, label: "Wszystkie linki", icon: Link2, count: links.length },
-            { id: "contacts" as const, label: "Klienci", icon: UserCheck, count: contacts.length },
-            { id: "files" as const, label: "Pliki", icon: FolderOpen, count: partnerFiles.length },
-            { id: "sub-partners" as const, label: "Moi partnerzy", icon: Users, count: subPartners.length },
-          ];
-          return null;
-        })()}
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
           <nav className="md:w-56 md:shrink-0">
