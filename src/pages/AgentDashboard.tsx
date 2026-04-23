@@ -670,6 +670,7 @@ export default function AgentDashboard() {
 
           {activeSection === "links" && (
           <div className="space-y-4">
+            <Card>
               <CardContent className="p-0">
                 {links.length === 0 ? (
                   <div className="p-12 text-center">
@@ -725,10 +726,11 @@ export default function AgentDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+          )}
 
-          {/* CONTACTS TAB */}
-          <TabsContent value="contacts" className="space-y-4">
+          {activeSection === "contacts" && (
+          <div className="space-y-4">
             <div className="flex justify-end">
               <Button onClick={() => openLeadForProject("")} className="gap-2">
                 <Plus className="h-4 w-4" /> Dodaj klienta
