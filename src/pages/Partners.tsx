@@ -245,7 +245,7 @@ export default function Partners() {
         }
       }
     }
-    setSaving(false); setOpen(false); fetchPartners();
+    setSaving(false); setOpen(false); fetchPartners(); fetchProjects();
   };
 
   const toggleActive = async (p: Partner) => { await supabase.from("partners").update({ is_active: !p.is_active }).eq("id", p.id); fetchPartners(); };
