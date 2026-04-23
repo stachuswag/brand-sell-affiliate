@@ -133,10 +133,13 @@ export default function LandingPages() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [content, setContent] = useState<LandingContent>(DEFAULT_CONTENT);
   const fileRef = useRef<HTMLInputElement>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
 
   const fetchPages = async () => {
     const { data } = await supabase
