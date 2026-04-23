@@ -244,12 +244,22 @@ export default function LandingPageView() {
       {/* Top brand bar (no nav tabs) */}
       <header className="relative z-10 px-8 md:px-14 py-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/40"
-            style={{ borderColor: "rgba(255,255,255,0.5)" }}
-          >
-            <Building2 className="h-6 w-6 text-white" />
-          </div>
+          {page.logo_url ? (
+            <div className="h-14 w-14 flex items-center justify-center">
+              <img
+                src={page.logo_url}
+                alt={page.title}
+                className="max-h-14 max-w-[120px] object-contain"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/40"
+              style={{ borderColor: "rgba(255,255,255,0.5)" }}
+            >
+              <Building2 className="h-6 w-6 text-white" />
+            </div>
+          )}
           <div className="leading-tight">
             <div className="text-base font-medium tracking-[0.2em] uppercase">{page.title}</div>
             {linkInfo?.partners?.name && (
