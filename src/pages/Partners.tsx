@@ -86,6 +86,11 @@ export default function Partners() {
   const [clayDetail, setClayDetail] = useState<Partner | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Quick assign projects
+  const [quickProjectsPartner, setQuickProjectsPartner] = useState<Partner | null>(null);
+  const [quickProjectIds, setQuickProjectIds] = useState<string[]>([]);
+  const [quickSaving, setQuickSaving] = useState(false);
+
   const fetchPartners = async () => {
     const { data } = await supabase
       .from("partners")
