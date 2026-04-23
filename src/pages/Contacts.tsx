@@ -625,6 +625,79 @@ export default function Contacts() {
         </Dialog>
       </div>
 
+      {/* Add Lead manually */}
+      <Dialog open={addLeadOpen} onOpenChange={setAddLeadOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Dodaj lead ręcznie
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddLead} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Imię i nazwisko *</Label>
+              <Input
+                value={leadForm.full_name}
+                onChange={(e) => setLeadForm({ ...leadForm, full_name: e.target.value })}
+                placeholder="Jan Kowalski"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={leadForm.email}
+                  onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
+                  placeholder="jan@example.pl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefon</Label>
+                <Input
+                  value={leadForm.phone}
+                  onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                  placeholder="+48 ..."
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Przypisz do partnera</Label>
+              <Select value={leadForm.partner_id} onValueChange={(v) => setLeadForm({ ...leadForm, partner_id: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Bez partnera —</SelectItem>
+                  {partners.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Wiadomość / notatki</Label>
+              <Textarea
+                value={leadForm.message}
+                onChange={(e) => setLeadForm({ ...leadForm, message: e.target.value })}
+                placeholder="Opcjonalna wiadomość od klienta lub notatka..."
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddLeadOpen(false)}>Anuluj</Button>
+              <Button type="submit" disabled={savingLead} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {savingLead ? "Dodawanie..." : "Dodaj lead"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete contact confirmation */}
       <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
         <AlertDialogContent>
