@@ -113,8 +113,19 @@ export default function Partners() {
   };
 
   const fetchProjects = async () => {
-    const { data } = await supabase.from("projects").select("id, name, cities").eq("is_active", true).order("name");
-    if (data) setProjects(data as Project[]);
+    const [{ data: projData }, { data: ppData }] = await Promise.all([
+      supabase.from("projects").select("id, name, cities").eq("is_active", true).order("name"),
+      supabase.from("partner_projects").select("partner_id, project_id"),
+    ]);
+    if (projData) setProjects(projData as Project[]);
+    if (ppData) {
+      const map: Record<string, string[]> = {};
+      ppData.forEach((r: { partner_id: string; project_id: string }) => {
+        if (!map[r.partner_id]) map[r.partner_id] = [];
+        map[r.partner_id].push(r.project_id);
+      });
+      setPartnerProjectsMap(map);
+    }
   };
 
   const fetchPartnerOffers = async (partnerId: string) => {
