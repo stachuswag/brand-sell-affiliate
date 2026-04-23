@@ -192,8 +192,6 @@ export default function Partners() {
       const existingProjectIds = new Set((existingPP || []).map((r) => r.project_id));
       const newlyAddedProjectIds = selectedProjectIds.filter((pid) => !existingProjectIds.has(pid));
 
-      await supabase.from("partner_offers").delete().eq("partner_id", partnerId);
-      if (selectedOfferIds.length > 0) await supabase.from("partner_offers").insert(selectedOfferIds.map((oid) => ({ partner_id: partnerId!, offer_id: oid })));
       await supabase.from("partner_projects").delete().eq("partner_id", partnerId);
       if (selectedProjectIds.length > 0) await supabase.from("partner_projects").insert(selectedProjectIds.map((pid) => ({ partner_id: partnerId!, project_id: pid })));
 
@@ -267,7 +265,7 @@ export default function Partners() {
   // One button - onboard
   const resetOnboardForm = (type: OnboardEmailType = "onboard") => {
     setOnboardProjectId("");
-    setOnboardOfferId("");
+    
     setOnboardEmailType(type);
     setOnboardCustomMsg("");
     setOnboardPassword("");
@@ -294,7 +292,7 @@ export default function Partners() {
 
   const handleOnboard = async () => {
     if (!onboardPartner) return;
-    if (onboardEmailType === "offer" && !onboardOfferId) return;
+    
     if ((onboardEmailType === "proposal" || onboardEmailType === "question") && !onboardCustomMsg.trim()) return;
 
     setOnboarding(true);
@@ -305,7 +303,7 @@ export default function Partners() {
         email_type: onboardEmailType,
       };
       if (onboardProjectId) payload.project_id = onboardProjectId;
-      if (onboardOfferId) payload.offer_id = onboardOfferId;
+      
       if (onboardCustomMsg.trim()) payload.custom_message = onboardCustomMsg.trim();
       // Handle agent account: create if missing, reset password if existing
       let finalPassword = onboardPassword;
@@ -652,19 +650,6 @@ export default function Partners() {
                 </div>
               )}
               <div className="space-y-2"><Label>Notatki</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} /></div>
-              {allOffers.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Przypisane oferty</Label>
-                  <div className="max-h-40 overflow-y-auto rounded-md border border-input p-2 space-y-1">
-                    {allOffers.map((o) => (
-                      <label key={o.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted text-sm">
-                        <Checkbox checked={selectedOfferIds.includes(o.id)} onCheckedChange={() => toggleOffer(o.id)} />
-                        <span>{o.name}</span>{o.city && <span className="text-xs text-muted-foreground">• {o.city}</span>}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
               {projects.length > 0 && (
                 <div className="space-y-2">
                   <Label>Przypisane projekty inwestycyjne ({selectedProjectIds.length})</Label>
@@ -786,20 +771,6 @@ export default function Partners() {
                 </div>
               )}
 
-              {onboardEmailType === "offer" && (
-                <div className="space-y-2">
-                  <Label>Oferta *</Label>
-                  <Select value={onboardOfferId} onValueChange={setOnboardOfferId}>
-                    <SelectTrigger><SelectValue placeholder="Wybierz ofertę..." /></SelectTrigger>
-                    <SelectContent>
-                      {allOffers.map((o) => (
-                        <SelectItem key={o.id} value={o.id}>{o.name}{o.city ? ` (${o.city})` : ""}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Wyśle szczegóły oferty i link afiliacyjny partnera.</p>
-                </div>
-              )}
 
               {onboardEmailType === "general" && (
                 <p className="text-sm text-muted-foreground">
@@ -836,7 +807,7 @@ export default function Partners() {
                   disabled={
                     onboarding ||
                     !onboardPartner?.email ||
-                    (onboardEmailType === "offer" && !onboardOfferId) ||
+                    
                     ((onboardEmailType === "proposal" || onboardEmailType === "question") && !onboardCustomMsg.trim())
                   }
                   className="gap-1.5"
