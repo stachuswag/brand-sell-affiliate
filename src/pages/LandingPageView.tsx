@@ -86,6 +86,12 @@ export default function LandingPageView() {
   const [rodoAccepted, setRodoAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const loadPage = async (query: { id?: string; slug?: string }) => {
