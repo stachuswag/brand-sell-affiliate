@@ -669,7 +669,6 @@ export default function AgentDashboard() {
 
           {/* LINKS TAB */}
           <TabsContent value="links" className="space-y-4">
-            <Card>
               <CardContent className="p-0">
                 {links.length === 0 ? (
                   <div className="p-12 text-center">
