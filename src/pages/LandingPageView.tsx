@@ -93,6 +93,16 @@ export default function LandingPageView() {
     return () => clearTimeout(t);
   }, []);
 
+  // Auto-advance hero images
+  useEffect(() => {
+    const imgs = page?.images ?? [];
+    if (imgs.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveImage((i) => (i + 1) % imgs.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [page?.images]);
+
   useEffect(() => {
     const loadPage = async (query: { id?: string; slug?: string }) => {
       let req = supabase.from("landing_pages").select("*").eq("is_published", true);
