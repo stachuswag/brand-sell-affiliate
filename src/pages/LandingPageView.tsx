@@ -43,6 +43,7 @@ interface LandingPage {
   description: string | null;
   generated_content: LandingContent | null;
   hero_image_url: string | null;
+  logo_url: string | null;
   images: string[];
   is_published: boolean;
 }
