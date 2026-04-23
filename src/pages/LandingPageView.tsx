@@ -86,10 +86,10 @@ export default function LandingPageView() {
   const [rodoAccepted, setRodoAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
-  const [mounted, setMounted] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 50);
+    const t = setTimeout(() => setIntroDone(true), 2200);
     return () => clearTimeout(t);
   }, []);
 
@@ -99,7 +99,7 @@ export default function LandingPageView() {
     if (imgs.length <= 1) return;
     const interval = setInterval(() => {
       setActiveImage((i) => (i + 1) % imgs.length);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [page?.images]);
 
@@ -247,7 +247,30 @@ export default function LandingPageView() {
 
   return (
     <div className="min-h-screen relative text-white">
-      {/* Fullscreen background image — crossfade carousel, full-resolution */}
+      {/* Intro splash with logo */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 flex items-center justify-center bg-neutral-950 transition-opacity duration-700 ease-out",
+          introDone ? "opacity-0 pointer-events-none" : "opacity-100"
+        )}
+      >
+        <div className="flex flex-col items-center gap-6 animate-scale-in">
+          {page.logo_url ? (
+            <img
+              src={page.logo_url}
+              alt={page.title}
+              className="max-h-40 max-w-[360px] object-contain drop-shadow-[0_10px_40px_rgba(255,255,255,0.15)]"
+            />
+          ) : (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-white/40">
+              <Building2 className="h-12 w-12 text-white" />
+            </div>
+          )}
+          <div className="text-sm tracking-[0.4em] uppercase text-white/70">{page.title}</div>
+        </div>
+      </div>
+
+      {/* Fullscreen background image — crossfade carousel, full-resolution, sharp */}
       {images.length > 0 ? (
         <div className="fixed inset-0 -z-10 bg-neutral-900">
           {images.map((src, i) => (
@@ -259,18 +282,17 @@ export default function LandingPageView() {
               decoding="async"
               draggable={false}
               className={cn(
-                "absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out will-change-[opacity,transform]",
-                i === activeImage ? "opacity-100 scale-105" : "opacity-0 scale-100"
+                "absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out",
+                i === activeImage ? "opacity-100" : "opacity-0"
               )}
-              style={{ transitionProperty: "opacity, transform", transitionDuration: "1500ms, 8000ms" }}
             />
           ))}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-black/45" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/30" />
         </div>
       ) : page.hero_image_url ? (
         <div className="fixed inset-0 -z-10">
           <img src={page.hero_image_url} alt="" className="w-full h-full object-cover" loading="eager" decoding="async" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-black/45" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/30" />
         </div>
       ) : (
         <div className="fixed inset-0 -z-10 bg-neutral-900" />
@@ -280,24 +302,21 @@ export default function LandingPageView() {
       <header className="relative z-10 px-8 md:px-14 py-8 flex items-center justify-between">
         <div
           className={cn(
-            "flex items-center gap-5 transition-all duration-[1200ms] ease-out",
-            mounted ? "opacity-100 translate-y-0 blur-0" : "opacity-0 -translate-y-4 blur-sm"
+            "flex items-center gap-5 transition-all duration-[900ms] ease-out",
+            introDone ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           )}
         >
           {page.logo_url ? (
-            <div className="flex items-center justify-center animate-fade-in">
-              <img
-                src={page.logo_url}
-                alt={page.title}
-                className="max-h-24 md:max-h-28 max-w-[220px] md:max-w-[260px] object-contain drop-shadow-[0_6px_24px_rgba(0,0,0,0.55)]"
-              />
-            </div>
+            <img
+              src={page.logo_url}
+              alt={page.title}
+              className="max-h-20 md:max-h-24 max-w-[240px] md:max-w-[280px] object-contain drop-shadow-[0_6px_24px_rgba(0,0,0,0.6)]"
+            />
           ) : (
             <div
-              className="flex h-20 w-20 items-center justify-center rounded-full border border-white/40"
-              style={{ borderColor: "rgba(255,255,255,0.5)" }}
+              className="flex h-16 w-16 items-center justify-center rounded-full border border-white/40"
             >
-              <Building2 className="h-9 w-9 text-white" />
+              <Building2 className="h-8 w-8 text-white" />
             </div>
           )}
           <div className="leading-tight">
