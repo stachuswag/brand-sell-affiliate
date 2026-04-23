@@ -26,7 +26,6 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  Building2,
   LayoutTemplate,
   Send,
   MessageSquare,

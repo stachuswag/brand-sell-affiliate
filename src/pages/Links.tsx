@@ -121,7 +121,6 @@ export default function Links() {
     const payload = {
       partner_id: form.partner_id,
       project_id: form.project_id || null,
-      offer_id: null,
       property_name: project?.name || null,
       property_address: project?.cities?.join(", ") || null,
       link_type: "partner" as const,
