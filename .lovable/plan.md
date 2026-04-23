@@ -1,44 +1,45 @@
 
 
-# Generowanie landing page przez Claude API
+# Przypisywanie projektów + boczne menu w panelu agenta
 
-Zamieniamy obecny silnik AI (Lovable AI Gateway → Gemini) w funkcji `generate-landing-page` na bezpośrednie wywołanie **Anthropic Claude API**. Reszta przepływu (UI w `LandingPages.tsx`, zapis do bazy, struktura JSON) pozostaje bez zmian — zmienia się tylko backend edge function.
+## 1. Partners — szybkie przypisanie projektów po kliknięciu w wiersz
 
-## Co potrzebuję od Ciebie
+Aktualnie przypisywanie projektów jest dostępne tylko przez przycisk "edytuj" (ołówek), który otwiera pełen formularz partnera. Dodajemy szybszy sposób:
 
-**Klucz API Anthropic** — wygenerujesz go w https://console.anthropic.com/settings/keys (zakładka "API Keys" → "Create Key"). Po Twoim potwierdzeniu poproszę o jego dodanie jako sekret `ANTHROPIC_API_KEY` w Lovable Cloud (klucz nie pojawi się w kodzie ani w repozytorium).
+- **Klik w wiersz partnera** (lub w nazwę / dedykowany przycisk "Projekty") otwiera lekki dialog **"Przypisz projekty"** z samą listą projektów (checkboxy).
+- Dialog pokazuje nazwę partnera w tytule + listę wszystkich aktywnych projektów z miastami.
+- Zapis: `DELETE` + `INSERT` na `partner_projects` (jak teraz w `handleSave`), plus auto-utworzenie linków afiliacyjnych dla nowo dodanych projektów (kopiujemy logikę z `handleSave` w jedno miejsce — pomocnik `syncPartnerProjects`).
+- Po zapisie odświeżamy `partnerProjectsMap` i `partners` żeby chipy/grupowanie natychmiast się przeładowały.
+- Cały dotychczasowy formularz edycji partnera (pełny dialog) zostaje — tu chodzi tylko o szybką ścieżkę.
 
-## Zmiany techniczne
+**UI**: w tabeli partnerów dodajemy małą ikonkę `Building2` / przycisk "Projekty" w kolumnie akcji + cały wiersz staje się klikalny (pomijamy klik na inne przyciski przez `e.stopPropagation`).
 
-### 1. Edge Function `supabase/functions/generate-landing-page/index.ts`
+## 2. Agent Dashboard — boczne menu zamiast zakładek poziomych
 
-- Usunięcie wywołania `https://ai.gateway.lovable.dev/v1/chat/completions`.
-- Dodanie wywołania `https://api.anthropic.com/v1/messages`:
-  - Header: `x-api-key: ${ANTHROPIC_API_KEY}`, `anthropic-version: 2023-06-01`, `content-type: application/json`
-  - Body: `model: "claude-sonnet-4-5-20250929"` (najnowszy Sonnet), `max_tokens: 2000`, `system: <systemPrompt>`, `messages: [{ role: "user", content: <userPrompt> }]`
-- Wymuszenie czystego JSON: prompt zostaje zaktualizowany o instrukcję "Odpowiedz WYŁĄCZNIE poprawnym obiektem JSON, bez żadnego tekstu przed/po, bez bloków markdown ` ``` `" + safety parser usuwający ewentualne ` ```json ` wrappery (Claude czasem je dodaje).
-- Obsługa błędów Anthropic: 401 (zły klucz), 429 (rate limit), 529 (przeciążenie) — zwracamy czytelne PL komunikaty do toasta w UI.
-- Zachowanie całej dotychczasowej struktury JSON odpowiedzi (`headline`, `subheadline`, `features[]`, `cta_text`, theme, kolory, benefits...) — żeby `LandingPages.tsx` i `LandingPageView.tsx` nie wymagały żadnych zmian.
+Aktualnie `src/pages/AgentDashboard.tsx` używa `<Tabs>` z poziomym `TabsList`. Zamieniamy na układ dwukolumnowy podobny do admina:
 
-### 2. Wybór modelu
+```text
+┌──────────────────────────────────────────┐
+│ Stats cards (jak teraz)                  │
+├────────────┬─────────────────────────────┤
+│ Sidebar    │  Zawartość wybranej sekcji  │
+│ • Projekty │                             │
+│ • Linki    │                             │
+│ • Leady    │                             │
+│ • Pliki    │                             │
+│ • Partn.   │                             │
+└────────────┴─────────────────────────────┘
+```
 
-Domyślnie **`claude-sonnet-4-5-20250929`** — najlepszy stosunek jakość/cena dla generowania treści marketingowej. W razie potrzeby można łatwo przełączyć na `claude-opus-4-20250514` (lepsza jakość, droższy) zmieniając jedną stałą w funkcji.
+- Lewa kolumna: pionowa lista przycisków (`Briefcase`, `Link2`, `UserCheck`, `FolderOpen`, `Users`) z licznikami w badge'ach. Aktywna pozycja ma akcent (navy/gold).
+- Prawa kolumna: aktualnie wybrany panel (zachowujemy całą zawartość obecnych `TabsContent`).
+- Stan przez `useState<"projects" | "links" | "contacts" | "files" | "sub-partners">` — bez zmian w logice danych.
+- Mobile: sidebar zwija się do poziomego paska scrollowanego (overflow-x-auto) — żeby nie psuć małych ekranów.
 
-### 3. Bez zmian
+## Pliki do edycji
 
-- `src/pages/LandingPages.tsx` — wywołuje `supabase.functions.invoke("generate-landing-page", ...)` bez modyfikacji.
-- `src/pages/LandingPageView.tsx` — render bez zmian.
-- Baza danych, RLS, storage — bez zmian.
+- `src/pages/Partners.tsx` — dodaj `quickProjectsPartner` state + dialog "Przypisz projekty" + helper `syncPartnerProjects(partnerId, ids)`; ikona "Projekty" w wierszu i klikalny wiersz.
+- `src/pages/AgentDashboard.tsx` — wymień `<Tabs>` na układ flex z lewym sidebarem nav + prawym panelem. Cała logika (dialogi, fetch) bez zmian.
 
-## Kolejność wykonania (po zatwierdzeniu)
-
-1. Poproszenie Cię o wklejenie `ANTHROPIC_API_KEY` (sekret).
-2. Po dodaniu sekretu — przepisanie `supabase/functions/generate-landing-page/index.ts` na Claude.
-3. Auto-deploy edge function.
-4. Test: kliknięcie "Generuj AI" w panelu Landing Pages → sprawdzenie wygenerowanego JSON-a w UI.
-
-## Uwagi
-
-- Anthropic API jest płatne per token z Twojego konta na console.anthropic.com (nie jest objęte kredytami Lovable AI). Średnie generowanie LP ~ $0.01–0.03 z modelem Sonnet.
-- Klucz pozostaje wyłącznie po stronie edge function (server-side), nigdy nie trafia do przeglądarki.
+Bez migracji bazy. Bez zmian w innych plikach.
 
