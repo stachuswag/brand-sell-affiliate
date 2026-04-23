@@ -156,6 +156,7 @@ export default function LandingPages() {
     setEditing(null);
     setForm(emptyForm);
     setUploadedImages([]);
+    setLogoUrl(null);
     setContent(DEFAULT_CONTENT);
     setOpen(true);
   };
@@ -168,6 +169,7 @@ export default function LandingPages() {
       ai_prompt: p.ai_prompt ?? "",
     });
     setUploadedImages(p.images ?? []);
+    setLogoUrl(p.logo_url ?? null);
     setContent({ ...DEFAULT_CONTENT, ...(p.generated_content ?? {}) });
     setOpen(true);
   };
