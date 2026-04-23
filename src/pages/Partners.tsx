@@ -122,16 +122,15 @@ export default function Partners() {
     setSelectedProjectIds(data?.map((r) => r.project_id) ?? []);
   };
 
-  useEffect(() => { fetchPartners(); fetchOffers(); fetchProjects(); }, []);
+  useEffect(() => { fetchPartners(); fetchProjects(); }, []);
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedOfferIds([]); setSelectedProjectIds([]); setOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setSelectedProjectIds([]); setOpen(true); };
   const openEdit = async (p: Partner) => {
     setEditing(p);
     setForm({ name: p.name, contact_person: p.contact_person ?? "", email: p.email ?? "", phone: p.phone ?? "", notes: p.notes ?? "", password: "", login_email: p.login_email ?? "" });
-    await Promise.all([fetchPartnerOffers(p.id), fetchPartnerProjects(p.id)]);
+    await fetchPartnerProjects(p.id);
     setOpen(true);
   };
-  const toggleOffer = (offerId: string) => setSelectedOfferIds((prev) => prev.includes(offerId) ? prev.filter((id) => id !== offerId) : [...prev, offerId]);
   const toggleProject = (projectId: string) => setSelectedProjectIds((prev) => prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]);
 
   const handleSave = async (e: React.FormEvent) => {
