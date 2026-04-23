@@ -808,10 +808,11 @@ export default function AgentDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+          )}
 
-          {/* FILES TAB */}
-          <TabsContent value="files" className="space-y-4">
+          {activeSection === "files" && (
+          <div className="space-y-4">
             <Card>
               <CardContent className="p-0">
                 {partnerFiles.length === 0 ? (
