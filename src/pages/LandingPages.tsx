@@ -82,6 +82,7 @@ interface LandingPage {
   ai_prompt: string | null;
   generated_content: LandingContent | null;
   hero_image_url: string | null;
+  logo_url: string | null;
   images: string[];
   is_published: boolean;
   created_at: string;
@@ -132,10 +133,13 @@ export default function LandingPages() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [content, setContent] = useState<LandingContent>(DEFAULT_CONTENT);
   const fileRef = useRef<HTMLInputElement>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
 
   const fetchPages = async () => {
     const { data } = await supabase
@@ -152,6 +156,7 @@ export default function LandingPages() {
     setEditing(null);
     setForm(emptyForm);
     setUploadedImages([]);
+    setLogoUrl(null);
     setContent(DEFAULT_CONTENT);
     setOpen(true);
   };
@@ -164,6 +169,7 @@ export default function LandingPages() {
       ai_prompt: p.ai_prompt ?? "",
     });
     setUploadedImages(p.images ?? []);
+    setLogoUrl(p.logo_url ?? null);
     setContent({ ...DEFAULT_CONTENT, ...(p.generated_content ?? {}) });
     setOpen(true);
   };
@@ -220,6 +226,25 @@ export default function LandingPages() {
     setUploadedImages((prev) => prev.filter((u) => u !== url));
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop();
+    const path = `logo-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from("landing-page-images")
+      .upload(path, file, { upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from("landing-page-images").getPublicUrl(path);
+      setLogoUrl(data.publicUrl);
+    } else {
+      toast({ title: "Błąd", description: "Nie udało się przesłać logo", variant: "destructive" });
+    }
+    setUploadingLogo(false);
+    if (logoRef.current) logoRef.current.value = "";
+  };
+
   const handleGenerate = async () => {
     if (!form.title && !form.ai_prompt && !form.description) {
       toast({ title: "Uzupełnij tytuł lub prompt", variant: "destructive" });
@@ -266,6 +291,7 @@ export default function LandingPages() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       images: uploadedImages as any,
       hero_image_url: uploadedImages[0] ?? null,
+      logo_url: logoUrl,
     };
 
     if (editing) {
@@ -456,6 +482,61 @@ export default function LandingPages() {
                   required
                 />
               </div>
+
+              {/* Logo */}
+              <div className="space-y-2">
+                <Label>Logo (opcjonalnie)</Label>
+                <div className="flex items-center gap-3">
+                  {logoUrl ? (
+                    <div className="relative group">
+                      <div className="h-16 w-16 rounded-lg border bg-muted/40 flex items-center justify-center overflow-hidden">
+                        <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setLogoUrl(null)}
+                        className="absolute -top-1.5 -right-1.5 h-5 w-5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                        title="Usuń logo"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className="h-16 w-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => logoRef.current?.click()}
+                    >
+                      {uploadingLogo ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Upload className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => logoRef.current?.click()}
+                      disabled={uploadingLogo}
+                    >
+                      {logoUrl ? "Zmień logo" : "Dodaj logo"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PNG / SVG na przezroczystym tle, max 1MB
+                    </p>
+                  </div>
+                  <input
+                    ref={logoRef}
+                    type="file"
+                    accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                </div>
+              </div>
+
 
               {/* Description */}
               <div className="space-y-2">

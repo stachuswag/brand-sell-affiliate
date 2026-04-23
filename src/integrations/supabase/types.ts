@@ -251,6 +251,7 @@ export type Database = {
           id: string
           images: Json | null
           is_published: boolean
+          logo_url: string | null
           slug: string | null
           title: string
           updated_at: string
@@ -265,6 +266,7 @@ export type Database = {
           id?: string
           images?: Json | null
           is_published?: boolean
+          logo_url?: string | null
           slug?: string | null
           title: string
           updated_at?: string
@@ -279,6 +281,7 @@ export type Database = {
           id?: string
           images?: Json | null
           is_published?: boolean
+          logo_url?: string | null
           slug?: string | null
           title?: string
           updated_at?: string
