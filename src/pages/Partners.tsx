@@ -596,8 +596,8 @@ export default function Partners() {
                           </TableRow>
                         ) : (
                           groups.map((g) => (
-                            <>
-                              <TableRow key={`g-${g.id}`} className="bg-muted/40 hover:bg-muted/40">
+                            <React.Fragment key={`g-${g.id}`}>
+                              <TableRow className="bg-muted/40 hover:bg-muted/40">
                                 <TableCell colSpan={colSpan} className="py-2">
                                   <div className="flex items-center gap-2">
                                     {g.chip ? (
@@ -611,7 +611,7 @@ export default function Partners() {
                                 </TableCell>
                               </TableRow>
                               {g.partners.map((p) => renderPartnerRow(p))}
-                            </>
+                            </React.Fragment>
                           ))
                         )
                       ) : (
