@@ -1,51 +1,64 @@
 
 
-## Podsumowanie: Co już mamy vs. co można dodać
+# Usunięcie ofert — tylko projekty (inwestycje)
 
-### Co już działa (Ścieżka 1 — rejestracja przez link):
-- Agent ma indywidualne linki afiliacyjne (`/c/:code`)
-- Klient klika link → formularz kontaktowy (imię, email, telefon)
-- Dane trafiają do bazy `contacts` z przypisaniem do agenta
-- Admin dostaje powiadomienie w aplikacji (in-app)
+Upraszczamy system: znikają oferty (offers), zostają tylko projekty inwestycyjne. Panel agenta dostaje rozbudowaną sekcję "Moje projekty".
 
-### Co już działa (Ścieżka 2 — rejestracja manualna):
-- Agent loguje się do panelu i może ręcznie dodać klienta
-- Kontakt jest przypisywany do agenta automatycznie
+## Co znika
 
----
+**Strony / nawigacja:**
+- Usunięcie strony `src/pages/Offers.tsx`
+- Usunięcie route `/offers` w `src/App.tsx`
+- Usunięcie linka "Oferty" z `src/components/AppShell.tsx` (admin nav)
+- Usunięcie zakładek "Oferty (przypisane)" i "Moje oferty" w `src/pages/AgentDashboard.tsx`
+- Usunięcie `src/components/OfferAttachmentsDialog.tsx`
 
-### Co BRAKUJE i co mogę dodać:
+**Baza danych (migracja):**
+- DROP TABLE `offer_attachments`
+- DROP TABLE `partner_offers`
+- DROP TABLE `offers`
+- Usunięcie kolumny `offer_id` z `affiliate_links` (link tylko do projektu)
+- Usunięcie kolumny `submitted_by_partner_id` z miejsc gdzie była używana w kontekście ofert
+- Storage bucket `offer-files` — pozostawiamy (sam się nie usunie, ale przestaje być używany)
 
-#### 1. Soft Check — weryfikacja duplikatów (Ścieżka 2)
-Agent wpisuje imię + 4 ostatnie cyfry telefonu → system sprawdza czy taki kontakt już istnieje w bazie. Jeśli tak — blokada z komunikatem. Jeśli nie — zielone światło i pełny formularz.
+## Co dostaje rozbudowę — "Moje projekty" w panelu agenta
 
-**Implementacja:** Nowy krok w dialogu dodawania kontaktu w panelu agenta. Zapytanie do tabeli `contacts` po `full_name ILIKE` + `phone LIKE '%XXXX'`.
+W `src/pages/AgentDashboard.tsx`, zakładka **Moje projekty** pokazuje wyłącznie projekty przypisane do partnera agenta (przez `partner_projects`). Dla każdego projektu karta z:
 
-#### 2. Checkbox zgody na przetwarzanie danych (Ścieżka 2)
-Obowiązkowe oświadczenie agenta o posiadaniu zgody klienta na przekazanie danych — checkbox w formularzu manualnej rejestracji.
+- Nazwa inwestycji + miasta (badge'y)
+- Opis
+- Link do folderu materiałów (Google Drive) — jeśli ustawiony
+- **Linki afiliacyjne** dla tego projektu (z tabeli `affiliate_links` gdzie `partner_id = mój` i `project_id = ten`) — pełny URL + przycisk "Kopiuj" + licznik kliknięć
+- Przycisk **"Zarejestruj leada"** — otwiera dialog (Soft Check + RODO) z prefillem `project_id` i odpowiedniego `affiliate_link_id`
+- Liczba leadów z tego projektu (z `contacts` przez `affiliate_links`)
 
-**Implementacja:** Dodanie checkboxa do formularza kontaktu w `AgentDashboard.tsx`, blokada przycisku "Wyślij" bez zaznaczenia.
+## Co poprawiamy w pozostałych miejscach
 
-#### 3. Pop-up formularz na stronie oferty (Ścieżka 1)
-Zamiast od razu pokazywać formularz, klient widzi stronę/ofertę, a formularz pojawia się jako pop-up (dialog) blokujący dostęp do szczegółów.
+- `src/pages/Links.tsx` — usunięcie wszelkich resztek pól `offer_id` / typu `property` (już zrobione wcześniej, dopilnować)
+- `src/pages/Contacts.tsx` — w dialogu "Dodaj lead ręcznie" zamiast partnera można opcjonalnie wybrać **projekt** (i partnera), generuje link `partner-projekt-MAN` jeśli brak
+- `src/pages/Reports.tsx` — jeśli odwołuje się do `offers`, przepiąć agregacje na `projects`
+- `src/pages/SendFiles.tsx` / `EmailCenter.tsx` — sprawdzić czy nie odwołują się do ofert; jeśli tak, usunąć
 
-**Implementacja:** Modyfikacja `LandingPageView.tsx` — ukrycie szczegółów oferty za dialogiem kontaktowym, który wymaga wypełnienia danych.
+## Migracja SQL (skrót)
 
-#### 4. Powiadomienia SMS do Biura Sprzedaży
-Automatyczny SMS do admina po zarejestrowaniu nowego leada (wymaga integracji z Twilio lub Make.com webhook).
+```sql
+ALTER TABLE affiliate_links DROP COLUMN offer_id;
+DROP TABLE offer_attachments;
+DROP TABLE partner_offers;
+DROP TABLE offers;
+-- enum link_type: zostawiamy 'partner' i 'project' (jeśli istnieje 'property', usunąć z użycia)
+```
 
-**Implementacja:** Rozbudowa triggera `notify_admins_on_contact` lub nowa Edge Function wysyłająca SMS przez Twilio connector / Make.com webhook.
+## Pliki do edycji
 
----
-
-### Plan implementacji (po zatwierdzeniu):
-
-| # | Zadanie | Pliki |
-|---|---------|-------|
-| 1 | Soft Check w panelu agenta (2-krokowy formularz: weryfikacja → pełna rejestracja) | `AgentDashboard.tsx` |
-| 2 | Checkbox zgody RODO w formularzu manualnym | `AgentDashboard.tsx` |
-| 3 | Pop-up formularz na Landing Page (gate content) | `LandingPageView.tsx` |
-| 4 | SMS powiadomienia (Twilio/Make.com) | Nowa Edge Function lub webhook |
-
-Które z tych funkcji chcesz wdrożyć? Mogę zrobić wszystkie naraz lub wybrane.
+- `src/App.tsx` — usuń import i route Offers
+- `src/components/AppShell.tsx` — usuń pozycję "Oferty"
+- `src/pages/AgentDashboard.tsx` — usuń taby ofert, rozbuduj tab "Moje projekty"
+- `src/pages/Contacts.tsx` — przełącz selektor partnera na projekt+partner
+- `src/pages/Links.tsx` — sprzątanie po offer_id (jeśli zostało)
+- `src/pages/Reports.tsx` — sprzątanie odwołań do ofert
+- `src/pages/SendFiles.tsx`, `src/pages/EmailCenter.tsx` — sprzątanie jeśli dotyczy
+- DELETE: `src/pages/Offers.tsx`, `src/components/OfferAttachmentsDialog.tsx`
+- Nowa migracja SQL w `supabase/migrations/`
+- Aktualizacja memory: usunąć `mem://features/offer-management`, zaktualizować `mem://features/projects-management` o rozbudowany agent view
 
