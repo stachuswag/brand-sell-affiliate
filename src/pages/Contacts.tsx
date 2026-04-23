@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCheck, TrendingUp, Filter, Phone, CheckCircle, Trash2 } from "lucide-react";
+import { UserCheck, TrendingUp, Filter, Phone, CheckCircle, Trash2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
