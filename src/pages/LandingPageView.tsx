@@ -86,6 +86,22 @@ export default function LandingPageView() {
   const [rodoAccepted, setRodoAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Auto-advance hero images
+  useEffect(() => {
+    const imgs = page?.images ?? [];
+    if (imgs.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveImage((i) => (i + 1) % imgs.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [page?.images]);
 
   useEffect(() => {
     const loadPage = async (query: { id?: string; slug?: string }) => {
@@ -231,11 +247,30 @@ export default function LandingPageView() {
 
   return (
     <div className="min-h-screen relative text-white">
-      {/* Fullscreen background image */}
-      {heroImg ? (
+      {/* Fullscreen background image — crossfade carousel, full-resolution */}
+      {images.length > 0 ? (
+        <div className="fixed inset-0 -z-10 bg-neutral-900">
+          {images.map((src, i) => (
+            <img
+              key={src + i}
+              src={src}
+              alt=""
+              loading={i === 0 ? "eager" : "lazy"}
+              decoding="async"
+              draggable={false}
+              className={cn(
+                "absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out will-change-[opacity,transform]",
+                i === activeImage ? "opacity-100 scale-105" : "opacity-0 scale-100"
+              )}
+              style={{ transitionProperty: "opacity, transform", transitionDuration: "1500ms, 8000ms" }}
+            />
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-black/45" />
+        </div>
+      ) : page.hero_image_url ? (
         <div className="fixed inset-0 -z-10">
-          <img src={heroImg} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-black/40" />
+          <img src={page.hero_image_url} alt="" className="w-full h-full object-cover" loading="eager" decoding="async" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-black/45" />
         </div>
       ) : (
         <div className="fixed inset-0 -z-10 bg-neutral-900" />
@@ -243,27 +278,32 @@ export default function LandingPageView() {
 
       {/* Top brand bar (no nav tabs) */}
       <header className="relative z-10 px-8 md:px-14 py-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "flex items-center gap-5 transition-all duration-[1200ms] ease-out",
+            mounted ? "opacity-100 translate-y-0 blur-0" : "opacity-0 -translate-y-4 blur-sm"
+          )}
+        >
           {page.logo_url ? (
-            <div className="h-14 w-14 flex items-center justify-center">
+            <div className="flex items-center justify-center animate-fade-in">
               <img
                 src={page.logo_url}
                 alt={page.title}
-                className="max-h-14 max-w-[120px] object-contain"
+                className="max-h-24 md:max-h-28 max-w-[220px] md:max-w-[260px] object-contain drop-shadow-[0_6px_24px_rgba(0,0,0,0.55)]"
               />
             </div>
           ) : (
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/40"
+              className="flex h-20 w-20 items-center justify-center rounded-full border border-white/40"
               style={{ borderColor: "rgba(255,255,255,0.5)" }}
             >
-              <Building2 className="h-6 w-6 text-white" />
+              <Building2 className="h-9 w-9 text-white" />
             </div>
           )}
           <div className="leading-tight">
-            <div className="text-base font-medium tracking-[0.2em] uppercase">{page.title}</div>
+            <div className="text-lg md:text-xl font-medium tracking-[0.2em] uppercase">{page.title}</div>
             {linkInfo?.partners?.name && (
-              <div className="text-[10px] tracking-[0.25em] uppercase text-white/70">
+              <div className="text-[11px] tracking-[0.25em] uppercase text-white/70 mt-1">
                 Partner · {linkInfo.partners.name}
               </div>
             )}
