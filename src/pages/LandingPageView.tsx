@@ -86,13 +86,11 @@ export default function LandingPageView() {
   const [rodoAccepted, setRodoAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
-  const [mounted, setMounted] = useState(false);
   const [introDone, setIntroDone] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setMounted(true), 50);
-    const t2 = setTimeout(() => setIntroDone(true), 2200);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const t = setTimeout(() => setIntroDone(true), 2200);
+    return () => clearTimeout(t);
   }, []);
 
   // Auto-advance hero images
