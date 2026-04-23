@@ -894,7 +894,39 @@ export default function Partners() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete confirmation */}
+        {/* Quick Assign Projects Dialog */}
+        <Dialog open={!!quickProjectsPartner} onOpenChange={(o) => !o && setQuickProjectsPartner(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> Przypisz projekty
+              </DialogTitle>
+              <DialogDescription>{quickProjectsPartner?.name}</DialogDescription>
+            </DialogHeader>
+            {projects.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Brak aktywnych projektów.</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                {projects.map((pr) => (
+                  <label key={pr.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-2 hover:bg-muted text-sm">
+                    <Checkbox checked={quickProjectIds.includes(pr.id)} onCheckedChange={() => toggleQuickProject(pr.id)} />
+                    <div className="flex-1">
+                      <div>{pr.name}</div>
+                      {pr.cities.length > 0 && <div className="text-xs text-muted-foreground">{pr.cities.join(", ")}</div>}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setQuickProjectsPartner(null)}>Anuluj</Button>
+              <Button onClick={handleQuickSave} disabled={quickSaving}>
+                {quickSaving ? "Zapisywanie..." : `Zapisz (${quickProjectIds.length})`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <AlertDialog open={!!deletePartner} onOpenChange={(o) => !o && setDeletePartner(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
