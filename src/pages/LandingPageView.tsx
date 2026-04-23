@@ -87,10 +87,12 @@ export default function LandingPageView() {
   const [saving, setSaving] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 50);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setMounted(true), 50);
+    const t2 = setTimeout(() => setIntroDone(true), 2200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
   // Auto-advance hero images
@@ -99,7 +101,7 @@ export default function LandingPageView() {
     if (imgs.length <= 1) return;
     const interval = setInterval(() => {
       setActiveImage((i) => (i + 1) % imgs.length);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [page?.images]);
 
