@@ -139,6 +139,7 @@ export default function AgentDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"projects" | "links" | "contacts" | "files" | "sub-partners">("projects");
 
   // Add contact dialog
   const [contactOpen, setContactOpen] = useState(false);
