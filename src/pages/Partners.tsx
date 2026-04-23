@@ -25,9 +25,8 @@ import { Plus, Pencil, Building, Mail, Phone, Link2, Trash2, Sparkles, Rocket, E
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-type OnboardEmailType = "onboard" | "offer" | "general" | "follow_up" | "proposal" | "question";
+type OnboardEmailType = "onboard" | "general" | "follow_up" | "proposal" | "question";
 
-interface Offer { id: string; name: string; city: string | null; }
 interface Project { id: string; name: string; cities: string[]; }
 interface Partner {
   id: string; name: string; contact_person: string | null; email: string | null;
@@ -44,7 +43,6 @@ const emptyForm = { name: "", contact_person: "", email: "", phone: "", notes: "
 
 const emailTypeOptions: { value: OnboardEmailType; label: string; description: string; icon: string }[] = [
   { value: "onboard", label: "Onboarding", description: "zatwierdzenie agenta", icon: "🚀" },
-  { value: "offer", label: "Oferta", description: "mail o konkretnej ofercie", icon: "📋" },
   { value: "general", label: "Ogólny", description: "podziękowanie i link afiliacyjny", icon: "✉️" },
   { value: "follow_up", label: "Follow-up", description: "krótkie przypomnienie", icon: "🔄" },
   { value: "proposal", label: "Propozycja", description: "własna propozycja współpracy", icon: "💡" },
@@ -53,7 +51,6 @@ const emailTypeOptions: { value: OnboardEmailType; label: string; description: s
 
 const emailTypeSuccessLabels: Record<OnboardEmailType, string> = {
   onboard: "Onboarding wysłany! 🚀",
-  offer: "Email o ofercie wysłany! 📋",
   general: "Email wysłany! ✉️",
   follow_up: "Follow-up wysłany! 🔄",
   proposal: "Propozycja wysłana! 💡",
@@ -72,8 +69,6 @@ export default function Partners() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deletePartner, setDeletePartner] = useState<Partner | null>(null);
-  const [allOffers, setAllOffers] = useState<Offer[]>([]);
-  const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   // Clay + Onboard
@@ -84,7 +79,6 @@ export default function Partners() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
-  const [onboardOfferId, setOnboardOfferId] = useState("");
   const [onboardEmailType, setOnboardEmailType] = useState<OnboardEmailType>("onboard");
   const [onboardCustomMsg, setOnboardCustomMsg] = useState("");
   const [onboardPassword, setOnboardPassword] = useState("");
@@ -107,11 +101,6 @@ export default function Partners() {
     setLoading(false);
   };
 
-  const fetchOffers = async () => {
-    const { data } = await supabase.from("offers").select("id, name, city").eq("is_active", true).order("name");
-    if (data) setAllOffers(data);
-  };
-
   const fetchProjects = async () => {
     const [{ data: projData }, { data: ppData }] = await Promise.all([
       supabase.from("projects").select("id, name, cities").eq("is_active", true).order("name"),
@@ -126,11 +115,6 @@ export default function Partners() {
       });
       setPartnerProjectsMap(map);
     }
-  };
-
-  const fetchPartnerOffers = async (partnerId: string) => {
-    const { data } = await supabase.from("partner_offers").select("offer_id").eq("partner_id", partnerId);
-    setSelectedOfferIds(data?.map((r) => r.offer_id) ?? []);
   };
 
   const fetchPartnerProjects = async (partnerId: string) => {
