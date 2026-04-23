@@ -292,6 +292,9 @@ export default function Contacts() {
             <h1 className="text-2xl font-bold text-foreground">Kontakty / Leady</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Wszystkie kontakty z linków afiliacyjnych</p>
           </div>
+          <Button onClick={() => setAddLeadOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" /> Dodaj lead ręcznie
+          </Button>
         </div>
 
         {/* Filters */}
