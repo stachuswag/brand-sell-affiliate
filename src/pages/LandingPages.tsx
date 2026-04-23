@@ -291,6 +291,7 @@ export default function LandingPages() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       images: uploadedImages as any,
       hero_image_url: uploadedImages[0] ?? null,
+      logo_url: logoUrl,
     };
 
     if (editing) {
