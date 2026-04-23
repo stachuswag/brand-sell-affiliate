@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/AppShell";
@@ -79,6 +79,8 @@ export default function Partners() {
   // Clay + Onboard
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [partnerProjectsMap, setPartnerProjectsMap] = useState<Record<string, string[]>>({});
+  const [groupByProject, setGroupByProject] = useState(true);
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardPartner, setOnboardPartner] = useState<Partner | null>(null);
   const [onboardProjectId, setOnboardProjectId] = useState("");
@@ -111,8 +113,19 @@ export default function Partners() {
   };
 
   const fetchProjects = async () => {
-    const { data } = await supabase.from("projects").select("id, name, cities").eq("is_active", true).order("name");
-    if (data) setProjects(data as Project[]);
+    const [{ data: projData }, { data: ppData }] = await Promise.all([
+      supabase.from("projects").select("id, name, cities").eq("is_active", true).order("name"),
+      supabase.from("partner_projects").select("partner_id, project_id"),
+    ]);
+    if (projData) setProjects(projData as Project[]);
+    if (ppData) {
+      const map: Record<string, string[]> = {};
+      ppData.forEach((r: { partner_id: string; project_id: string }) => {
+        if (!map[r.partner_id]) map[r.partner_id] = [];
+        map[r.partner_id].push(r.project_id);
+      });
+      setPartnerProjectsMap(map);
+    }
   };
 
   const fetchPartnerOffers = async (partnerId: string) => {
@@ -232,7 +245,7 @@ export default function Partners() {
         }
       }
     }
-    setSaving(false); setOpen(false); fetchPartners();
+    setSaving(false); setOpen(false); fetchPartners(); fetchProjects();
   };
 
   const toggleActive = async (p: Partner) => { await supabase.from("partners").update({ is_active: !p.is_active }).eq("id", p.id); fetchPartners(); };
@@ -423,6 +436,29 @@ export default function Partners() {
           )}
         </div>
 
+        {/* Group toggle */}
+        {projects.length > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Widok:</span>
+            <Button
+              size="sm"
+              variant={groupByProject ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setGroupByProject(true)}
+            >
+              Grupuj wg inwestycji
+            </Button>
+            <Button
+              size="sm"
+              variant={!groupByProject ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setGroupByProject(false)}
+            >
+              Lista płaska
+            </Button>
+          </div>
+        )}
+
         <Card>
           <CardContent className="p-0">
             {loading ? (
@@ -432,71 +468,160 @@ export default function Partners() {
                 <Building className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm font-medium text-foreground">Brak partnerów</p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Firma</TableHead>
-                      <TableHead>Kontakt</TableHead>
-                      <TableHead className="text-center">Linki</TableHead>
-                      <TableHead className="text-center">Status agenta</TableHead>
-                      <TableHead className="text-center">Clay</TableHead>
-                      {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {partners.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {p.name}
-                            {p.parent_partner_id && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-200 bg-purple-50 text-purple-700">Sub</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm space-y-0.5">
-                            {p.contact_person && <div className="text-foreground">{p.contact_person}</div>}
-                            {p.email && <a href={`mailto:${p.email}`} className="flex items-center gap-1 text-primary hover:underline text-xs"><Mail className="h-3 w-3" />{p.email}</a>}
-                            {p.phone && <a href={`tel:${p.phone}`} className="flex items-center gap-1 text-xs hover:underline"><Phone className="h-3 w-3" />{p.phone}</a>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center gap-1 text-sm"><Link2 className="h-3.5 w-3.5 text-muted-foreground" />{p.link_count ?? 0}</span>
-                        </TableCell>
-                        <TableCell className="text-center">{statusBadge(p)}</TableCell>
-                        <TableCell className="text-center">
-                          {p.clay_enriched_at ? (
-                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setClayDetail(p)}>
-                              <Sparkles className="h-3 w-3 text-amber-500" /> Dane
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        {isAdmin && (
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEnrich(p)} disabled={enrichingId === p.id} title="Wzbogać dane (Clay + AI)">
-                                <Sparkles className={`h-3.5 w-3.5 ${enrichingId === p.id ? "animate-spin" : ""}`} />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openOnboard(p)} title="Jeden Guzik — onboard agenta">
-                                <Rocket className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
-                              <Button variant="ghost" size="sm" onClick={() => toggleActive(p)} className="h-8 px-2 text-xs">{p.is_active ? "Off" : "On"}</Button>
-                              <Button variant="ghost" size="sm" onClick={() => setDeletePartner(p)} className="h-8 w-8 p-0 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
-                            </div>
-                          </TableCell>
+            ) : (() => {
+              // Build grouped buckets
+              const projectColors = [
+                { dot: "bg-blue-500", chip: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300" },
+                { dot: "bg-emerald-500", chip: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" },
+                { dot: "bg-amber-500", chip: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300" },
+                { dot: "bg-rose-500", chip: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300" },
+                { dot: "bg-violet-500", chip: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-300" },
+                { dot: "bg-cyan-500", chip: "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950 dark:text-cyan-300" },
+                { dot: "bg-orange-500", chip: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300" },
+                { dot: "bg-teal-500", chip: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-300" },
+              ];
+              const colorFor = (projId: string) => {
+                const idx = projects.findIndex((p) => p.id === projId);
+                return projectColors[(idx >= 0 ? idx : 0) % projectColors.length];
+              };
+
+              const renderProjectChips = (partnerId: string) => {
+                const ids = partnerProjectsMap[partnerId] ?? [];
+                if (ids.length === 0) return <span className="text-[10px] text-muted-foreground italic">Brak inwestycji</span>;
+                return (
+                  <div className="flex flex-wrap gap-1">
+                    {ids.map((pid) => {
+                      const proj = projects.find((p) => p.id === pid);
+                      if (!proj) return null;
+                      const c = colorFor(pid);
+                      return (
+                        <span key={pid} className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] font-medium ${c.chip}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                          {proj.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              };
+
+              const renderPartnerRow = (p: Partner) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {p.name}
+                        {p.parent_partner_id && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-200 bg-purple-50 text-purple-700">Sub</Badge>
                         )}
+                      </div>
+                      {!groupByProject && renderProjectChips(p.id)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm space-y-0.5">
+                      {p.contact_person && <div className="text-foreground">{p.contact_person}</div>}
+                      {p.email && <a href={`mailto:${p.email}`} className="flex items-center gap-1 text-primary hover:underline text-xs"><Mail className="h-3 w-3" />{p.email}</a>}
+                      {p.phone && <a href={`tel:${p.phone}`} className="flex items-center gap-1 text-xs hover:underline"><Phone className="h-3 w-3" />{p.phone}</a>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="inline-flex items-center gap-1 text-sm"><Link2 className="h-3.5 w-3.5 text-muted-foreground" />{p.link_count ?? 0}</span>
+                  </TableCell>
+                  <TableCell className="text-center">{statusBadge(p)}</TableCell>
+                  <TableCell className="text-center">
+                    {p.clay_enriched_at ? (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setClayDetail(p)}>
+                        <Sparkles className="h-3 w-3 text-amber-500" /> Dane
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEnrich(p)} disabled={enrichingId === p.id} title="Wzbogać dane (Clay + AI)">
+                          <Sparkles className={`h-3.5 w-3.5 ${enrichingId === p.id ? "animate-spin" : ""}`} />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openOnboard(p)} title="Jeden Guzik — onboard agenta">
+                          <Rocket className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => toggleActive(p)} className="h-8 px-2 text-xs">{p.is_active ? "Off" : "On"}</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeletePartner(p)} className="h-8 w-8 p-0 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+
+              const colSpan = isAdmin ? 6 : 5;
+
+              // Group by project
+              const groups: { id: string | "none"; name: string; chip: typeof projectColors[number] | null; partners: Partner[] }[] = [];
+              if (groupByProject) {
+                projects.forEach((proj) => {
+                  const list = partners.filter((p) => (partnerProjectsMap[p.id] ?? []).includes(proj.id));
+                  if (list.length > 0) {
+                    groups.push({ id: proj.id, name: proj.name, chip: colorFor(proj.id), partners: list });
+                  }
+                });
+                const noneList = partners.filter((p) => !(partnerProjectsMap[p.id] ?? []).length);
+                if (noneList.length > 0) {
+                  groups.push({ id: "none", name: "Bez inwestycji", chip: null, partners: noneList });
+                }
+              }
+
+              return (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Firma{!groupByProject && " / inwestycje"}</TableHead>
+                        <TableHead>Kontakt</TableHead>
+                        <TableHead className="text-center">Linki</TableHead>
+                        <TableHead className="text-center">Status agenta</TableHead>
+                        <TableHead className="text-center">Clay</TableHead>
+                        {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+                    </TableHeader>
+                    <TableBody>
+                      {groupByProject ? (
+                        groups.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground py-6">
+                              Brak partnerów do wyświetlenia
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          groups.map((g) => (
+                            <React.Fragment key={`g-${g.id}`}>
+                              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                                <TableCell colSpan={colSpan} className="py-2">
+                                  <div className="flex items-center gap-2">
+                                    {g.chip ? (
+                                      <span className={`h-2.5 w-2.5 rounded-full ${g.chip.dot}`} />
+                                    ) : (
+                                      <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
+                                    )}
+                                    <span className="font-semibold text-sm text-foreground">{g.name}</span>
+                                    <span className="text-xs text-muted-foreground">({g.partners.length} {g.partners.length === 1 ? "partner" : "partnerów"})</span>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                              {g.partners.map((p) => renderPartnerRow(p))}
+                            </React.Fragment>
+                          ))
+                        )
+                      ) : (
+                        partners.map((p) => renderPartnerRow(p))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
