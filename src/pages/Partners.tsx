@@ -554,7 +554,11 @@ export default function Partners() {
               };
 
               const renderPartnerRow = (p: Partner) => (
-                <TableRow key={p.id}>
+                <TableRow
+                  key={p.id}
+                  className={isAdmin ? "cursor-pointer" : ""}
+                  onClick={isAdmin ? () => openQuickProjects(p) : undefined}
+                >
                   <TableCell className="font-medium">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -566,7 +570,7 @@ export default function Partners() {
                       {!groupByProject && renderProjectChips(p.id)}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="text-sm space-y-0.5">
                       {p.contact_person && <div className="text-foreground">{p.contact_person}</div>}
                       {p.email && <a href={`mailto:${p.email}`} className="flex items-center gap-1 text-primary hover:underline text-xs"><Mail className="h-3 w-3" />{p.email}</a>}
@@ -577,7 +581,7 @@ export default function Partners() {
                     <span className="inline-flex items-center gap-1 text-sm"><Link2 className="h-3.5 w-3.5 text-muted-foreground" />{p.link_count ?? 0}</span>
                   </TableCell>
                   <TableCell className="text-center">{statusBadge(p)}</TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {p.clay_enriched_at ? (
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setClayDetail(p)}>
                         <Sparkles className="h-3 w-3 text-amber-500" /> Dane
@@ -587,15 +591,18 @@ export default function Partners() {
                     )}
                   </TableCell>
                   {isAdmin && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openQuickProjects(p)} title="Przypisz projekty">
+                          <Building2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEnrich(p)} disabled={enrichingId === p.id} title="Wzbogać dane (Clay + AI)">
                           <Sparkles className={`h-3.5 w-3.5 ${enrichingId === p.id ? "animate-spin" : ""}`} />
                         </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openOnboard(p)} title="Jeden Guzik — onboard agenta">
                           <Rocket className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(p)} title="Edytuj"><Pencil className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => toggleActive(p)} className="h-8 px-2 text-xs">{p.is_active ? "Off" : "On"}</Button>
                         <Button variant="ghost" size="sm" onClick={() => setDeletePartner(p)} className="h-8 w-8 p-0 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                       </div>
