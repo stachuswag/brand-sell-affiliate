@@ -97,6 +97,72 @@ export default function Contacts() {
   const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
   const [dealForm, setDealForm] = useState({ deal_value: "", commission_amount: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [leadForm, setLeadForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    message: "",
+    partner_id: "none",
+  });
+  const [savingLead, setSavingLead] = useState(false);
+
+  const handleAddLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leadForm.full_name.trim()) {
+      toast({ title: "Imię i nazwisko jest wymagane", variant: "destructive" });
+      return;
+    }
+    setSavingLead(true);
+    let affiliateLinkId: string | null = null;
+
+    if (leadForm.partner_id !== "none") {
+      // find or create a manual link for this partner (tracking_code ends with -MAN)
+      const { data: existing } = await supabase
+        .from("affiliate_links")
+        .select("id")
+        .eq("partner_id", leadForm.partner_id)
+        .like("tracking_code", "%-MAN")
+        .maybeSingle();
+      if (existing) {
+        affiliateLinkId = existing.id;
+      } else {
+        const partner = partners.find((p) => p.id === leadForm.partner_id);
+        const slug = (partner?.name || "partner").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 20);
+        const code = `${slug}-${Math.random().toString(36).slice(2, 6)}-MAN`;
+        const { data: newLink } = await supabase
+          .from("affiliate_links")
+          .insert({
+            partner_id: leadForm.partner_id,
+            tracking_code: code,
+            link_type: "partner",
+            created_by: user?.id,
+          })
+          .select("id")
+          .single();
+        affiliateLinkId = newLink?.id ?? null;
+      }
+    }
+
+    const { error } = await supabase.from("contacts").insert({
+      full_name: leadForm.full_name.trim(),
+      email: leadForm.email.trim() || null,
+      phone: leadForm.phone.trim() || null,
+      message: leadForm.message.trim() || null,
+      affiliate_link_id: affiliateLinkId,
+      status: "new",
+    });
+
+    setSavingLead(false);
+    if (error) {
+      toast({ title: "Błąd", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Lead dodany ✓" });
+    setLeadForm({ full_name: "", email: "", phone: "", message: "", partner_id: "none" });
+    setAddLeadOpen(false);
+    fetchContacts();
+  };
 
   const fetchContacts = async () => {
     const { data } = await supabase
