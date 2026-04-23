@@ -277,25 +277,6 @@ export default function EmailCenter() {
               </div>
             )}
 
-            {/* Offer select */}
-            {emailType === "offer" && (
-              <div className="space-y-2">
-                <Label>Oferta</Label>
-                <Select value={offerId} onValueChange={setOfferId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Wybierz ofertę..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {offers.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>
-                        {o.name}{o.city ? ` (${o.city})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             {/* Project select (optional, for onboard/general) */}
             {(emailType === "onboard" || emailType === "general") && (
               <div className="space-y-2">
