@@ -226,6 +226,25 @@ export default function LandingPages() {
     setUploadedImages((prev) => prev.filter((u) => u !== url));
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop();
+    const path = `logo-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from("landing-page-images")
+      .upload(path, file, { upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from("landing-page-images").getPublicUrl(path);
+      setLogoUrl(data.publicUrl);
+    } else {
+      toast({ title: "Błąd", description: "Nie udało się przesłać logo", variant: "destructive" });
+    }
+    setUploadingLogo(false);
+    if (logoRef.current) logoRef.current.value = "";
+  };
+
   const handleGenerate = async () => {
     if (!form.title && !form.ai_prompt && !form.description) {
       toast({ title: "Uzupełnij tytuł lub prompt", variant: "destructive" });
