@@ -138,6 +138,68 @@ export default function Partners() {
   };
   const toggleProject = (projectId: string) => setSelectedProjectIds((prev) => prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]);
 
+  const slugify = (s: string) => s.toLowerCase()
+    .replace(/[ąćęłńóśźż]/g, (ch) => ({ ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z" }[ch] || ch))
+    .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+  // Sync partner_projects: replace assignments and auto-create affiliate links for newly added projects
+  const syncPartnerProjects = async (partnerId: string, partnerName: string, newProjectIds: string[]) => {
+    const { data: existingPP } = await supabase
+      .from("partner_projects").select("project_id").eq("partner_id", partnerId);
+    const existingProjectIds = new Set((existingPP || []).map((r) => r.project_id));
+    const newlyAdded = newProjectIds.filter((pid) => !existingProjectIds.has(pid));
+
+    await supabase.from("partner_projects").delete().eq("partner_id", partnerId);
+    if (newProjectIds.length > 0) {
+      await supabase.from("partner_projects").insert(newProjectIds.map((pid) => ({ partner_id: partnerId, project_id: pid })));
+    }
+
+    if (newlyAdded.length > 0) {
+      const partnerSlug = (slugify(partnerName).slice(0, 14)) || "partner";
+      const projectsForLinks = projects.filter((p) => newlyAdded.includes(p.id));
+      const linkRows = projectsForLinks.map((p) => {
+        const projectSlug = slugify(p.name).slice(0, 10);
+        const rand = Math.random().toString(36).slice(2, 6);
+        return {
+          partner_id: partnerId,
+          project_id: p.id,
+          link_type: "partner" as const,
+          property_name: p.name,
+          property_address: (p.cities || []).join(", ") || null,
+          tracking_code: `${partnerSlug}-${projectSlug}-${rand}`,
+          is_active: true,
+        };
+      });
+      if (linkRows.length > 0) {
+        const { error: linkErr } = await supabase.from("affiliate_links").insert(linkRows);
+        if (linkErr) {
+          toast({ title: "Uwaga: linki nie utworzone", description: linkErr.message, variant: "destructive" });
+        } else {
+          toast({ title: `Utworzono ${linkRows.length} link${linkRows.length === 1 ? "" : "ów"} afiliacyjnych` });
+        }
+      }
+    }
+  };
+
+  const openQuickProjects = async (p: Partner) => {
+    setQuickProjectsPartner(p);
+    const { data } = await supabase.from("partner_projects").select("project_id").eq("partner_id", p.id);
+    setQuickProjectIds(data?.map((r) => r.project_id) ?? []);
+  };
+
+  const toggleQuickProject = (pid: string) =>
+    setQuickProjectIds((prev) => prev.includes(pid) ? prev.filter((id) => id !== pid) : [...prev, pid]);
+
+  const handleQuickSave = async () => {
+    if (!quickProjectsPartner) return;
+    setQuickSaving(true);
+    await syncPartnerProjects(quickProjectsPartner.id, quickProjectsPartner.name, quickProjectIds);
+    setQuickSaving(false);
+    setQuickProjectsPartner(null);
+    fetchPartners();
+    fetchProjects();
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
